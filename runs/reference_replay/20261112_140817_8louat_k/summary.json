@@ -1,0 +1,129 @@
+{
+  "mode": "replay",
+  "evidence": "recorded IQ replay",
+  "profile": {
+    "center_hz": 915000000,
+    "sample_rate_hz": 1000000,
+    "carriers_hz": [
+      914875000,
+      915125000
+    ],
+    "spreading_factors": [
+      10,
+      11,
+      12
+    ],
+    "bandwidth_hz": 125000,
+    "sync_word": 18,
+    "explicit_header": true,
+    "coding_rate_denominator": 7,
+    "phy_crc": true,
+    "preamble_symbols": 8,
+    "ldro": "auto",
+    "invert_iq": false,
+    "implicit_length": 55,
+    "max_cfo_hz": 18000,
+    "ldro_by_sf": {
+      "10": false,
+      "11": true,
+      "12": true
+    }
+  },
+  "run_directory": "C:\\Users\\lohat\\Desktop\\DeSCENT_Comms\\LoRa_SDR_Reciever\\runs\\reference_replay\\20261112_140817_8louat_k",
+  "started_utc": "2026-11-12T19:08:17.287243+00:00",
+  "decoder_version": "0.3.0",
+  "status": "complete",
+  "branches": {
+    "914875000/SF10": {
+      "packets": 0,
+      "phy_pass": 0,
+      "app_pass": 0,
+      "syncs": 0
+    },
+    "914875000/SF11": {
+      "packets": 0,
+      "phy_pass": 0,
+      "app_pass": 0,
+      "syncs": 0
+    },
+    "914875000/SF12": {
+      "packets": 0,
+      "phy_pass": 0,
+      "app_pass": 0,
+      "syncs": 0
+    },
+    "915125000/SF10": {
+      "packets": 0,
+      "phy_pass": 0,
+      "app_pass": 0,
+      "syncs": 0
+    },
+    "915125000/SF11": {
+      "packets": 0,
+      "phy_pass": 0,
+      "app_pass": 0,
+      "syncs": 0
+    },
+    "915125000/SF12": {
+      "packets": 0,
+      "phy_pass": 0,
+      "app_pass": 0,
+      "syncs": 0
+    }
+  },
+  "false_decodes": null,
+  "duplicate_decodes": null,
+  "upstream_usb_dropped_samples": null,
+  "capture_path": "C:\\Users\\lohat\\Desktop\\DeSCENT_Comms\\LRFHSS_Reciever\\LRFHSS_Fleet_GENERATED_REPORTS\\analysis\\gi_owner_soak_20261107\\gui_outputs\\gui_smoke_t01_L\\iq\\lrfhss_live_20261107_153649_915.000MHz_g10dB.iq",
+  "capture_sha256": "e31880ecc811d2122d8b0e1cd701ece693f3c868e17b0bb647ccfcb88520c160",
+  "paced": false,
+  "sidecar": {
+    "format": "rtl_sdr unsigned 8-bit interleaved I/Q",
+    "sample_rate_hz": 1000000,
+    "file": "lrfhss_live_20261107_153649_915.000MHz_g10dB.iq",
+    "started_utc": "2026-11-07T20:36:49.454136+00:00",
+    "finished_utc": "2026-11-07T20:36:49.598176+00:00",
+    "bytes_received": 1000000,
+    "bytes_written": 1000000,
+    "bytes_dropped": 0,
+    "gaps": [],
+    "stopped_reason": null,
+    "error": null,
+    "center_hz": 915000000,
+    "gain_db": 10.0,
+    "ppm": 0,
+    "source": "rtl_tcp",
+    "receiver": "LR-FHSS Fleet Manager"
+  },
+  "iq_format": "CU8",
+  "gap_count": 0,
+  "recorded_unavailable_samples": 0,
+  "sic_enabled": false,
+  "error": null,
+  "capture_seconds": 0.5,
+  "processed_samples": 500000,
+  "dropped_samples": 0,
+  "processing_seconds": 0.06298849999438971,
+  "processing_x_realtime": 7.937956929352727,
+  "elapsed_seconds": 0.10091259999899194,
+  "elapsed_x_realtime": 4.954782653553617,
+  "clipped_samples": 0,
+  "clipped_sample_fraction": 0.0,
+  "peak_block_clip_fraction": 0.0,
+  "peak_backlog_s": 0.0,
+  "backlog_slope_s_per_s": null,
+  "backlog_growing": null,
+  "backlog_history_s": [],
+  "crc_counts": {},
+  "decoder_counters": {},
+  "packets": 0,
+  "periods": [
+    {
+      "start_s": 0,
+      "complete": false,
+      "unique_valid_chipsats": 0,
+      "reached_80": false
+    }
+  ],
+  "fraction_complete_periods_at_least_80": null
+}

@@ -1,0 +1,25 @@
+{
+  "transmit_log": "C:\\Users\\lohat\\Desktop\\DeSCENT_Comms\\LoRa_SDR_Reciever\\runs\\release_check\\20261112_144239_yg83dkre\\iq\\six_branches.tx.csv",
+  "transmit_log_sha256": "10e658ff1336379b50fcc6365c66d1f1001d53760326452723e919d97252b400",
+  "capture_sha256": "6d07a0bf19a4c6da8dc6dac7224f5e15c0cb75837093dfcaf1e0c1850b313623",
+  "tx_to_capture_offset_s": 0.0,
+  "match_tolerance_s": 0.015,
+  "offered": 6,
+  "matched": 6,
+  "missed": 0,
+  "false_decodes": 0,
+  "duplicate_decodes": 0,
+  "rejected_crc_or_unverified": 0,
+  "max_abs_timing_error_ms": 0.001000000000001,
+  "period_origin_capture_s": 0.0,
+  "periods": [
+    {
+      "start_s": 0,
+      "complete": false,
+      "unique_valid_chipsats": 6,
+      "reached_80": false,
+      "offered_chipsats": 6
+    }
+  ],
+  "fraction_complete_periods_at_least_80": null
+}

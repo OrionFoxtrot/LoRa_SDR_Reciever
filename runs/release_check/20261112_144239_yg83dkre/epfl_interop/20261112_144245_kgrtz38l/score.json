@@ -1,0 +1,25 @@
+{
+  "transmit_log": "C:\\Users\\lohat\\Desktop\\DeSCENT_Comms\\LoRa_SDR_Reciever\\examples\\epfl_bench.tx.csv",
+  "transmit_log_sha256": "a03027dd0c113801b0059e17d63cfeddcb678d984a5a44059527c838a0b4bcb7",
+  "capture_sha256": "ea1c55fdc7c7c53df9905c84794d6ce85e863e99898ef7ddc3805ee828a1f618",
+  "tx_to_capture_offset_s": 0.0,
+  "match_tolerance_s": 0.015,
+  "offered": 5,
+  "matched": 5,
+  "missed": 0,
+  "false_decodes": 0,
+  "duplicate_decodes": 0,
+  "rejected_crc_or_unverified": 0,
+  "max_abs_timing_error_ms": 0.001000000000139778,
+  "period_origin_capture_s": 0.0,
+  "periods": [
+    {
+      "start_s": 0,
+      "complete": false,
+      "unique_valid_chipsats": 3,
+      "reached_80": false,
+      "offered_chipsats": 3
+    }
+  ],
+  "fraction_complete_periods_at_least_80": null
+}

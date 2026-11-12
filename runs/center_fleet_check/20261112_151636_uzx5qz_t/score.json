@@ -1,0 +1,46 @@
+{
+  "transmit_log": "C:\\Users\\lohat\\Desktop\\DeSCENT_Comms\\LoRa_SDR_Reciever\\validation\\bench_runs\\20261112_141208_zbo_w9ky\\iq\\fleet100.tx.csv",
+  "transmit_log_sha256": "3e7945be0764a3dd8a055128cefc0af9944fca53a36c1a616922c762e87afacb",
+  "capture_sha256": "f09970b6374db9a348718df16ab1466d8edb42c7ebdbd4ac43214f2943af58e9",
+  "tx_to_capture_offset_s": 0.0,
+  "match_tolerance_s": 0.015,
+  "offered": 300,
+  "matched": 176,
+  "missed": 124,
+  "false_decodes": 0,
+  "duplicate_decodes": 0,
+  "rejected_crc_or_unverified": 48,
+  "max_abs_timing_error_ms": 0.0010000000116860974,
+  "period_origin_capture_s": 0.0,
+  "periods": [
+    {
+      "start_s": 0,
+      "complete": true,
+      "unique_valid_chipsats": 61,
+      "reached_80": false,
+      "offered_chipsats": 100
+    },
+    {
+      "start_s": 30,
+      "complete": true,
+      "unique_valid_chipsats": 56,
+      "reached_80": false,
+      "offered_chipsats": 100
+    },
+    {
+      "start_s": 60,
+      "complete": true,
+      "unique_valid_chipsats": 59,
+      "reached_80": false,
+      "offered_chipsats": 100
+    },
+    {
+      "start_s": 90,
+      "complete": false,
+      "unique_valid_chipsats": 0,
+      "reached_80": false,
+      "offered_chipsats": 0
+    }
+  ],
+  "fraction_complete_periods_at_least_80": 0.0
+}

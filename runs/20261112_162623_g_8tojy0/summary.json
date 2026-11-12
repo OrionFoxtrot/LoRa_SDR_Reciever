@@ -1,0 +1,52 @@
+{
+  "mode": "live",
+  "evidence": "live hardware",
+  "run_id": "20261112_162623_g_8tojy0",
+  "run_name": "Bench run 3",
+  "profile": {
+    "center_hz": 915000000,
+    "sample_rate_hz": 1000000,
+    "carriers_hz": [
+      914875000,
+      915000000,
+      915125000
+    ],
+    "spreading_factors": [
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "bandwidth_hz": 125000,
+    "sync_word": 18,
+    "explicit_header": true,
+    "coding_rate_denominator": 7,
+    "phy_crc": true,
+    "preamble_symbols": 8,
+    "ldro": "auto",
+    "invert_iq": false,
+    "implicit_length": 55,
+    "max_cfo_hz": 18000,
+    "monitor_only_hz": [
+      915000000
+    ],
+    "ldro_by_sf": {
+      "7": false,
+      "8": false,
+      "9": false,
+      "10": false,
+      "11": true,
+      "12": true
+    }
+  },
+  "run_directory": "C:\\Users\\lohat\\Desktop\\DeSCENT_Comms\\LoRa_SDR_Reciever\\runs\\20261112_162623_g_8tojy0",
+  "started_utc": "2026-11-12T21:26:30.162492+00:00",
+  "decoder_version": "0.3.0",
+  "status": "running",
+  "branches": {},
+  "false_decodes": null,
+  "duplicate_decodes": null,
+  "upstream_usb_dropped_samples": null
+}

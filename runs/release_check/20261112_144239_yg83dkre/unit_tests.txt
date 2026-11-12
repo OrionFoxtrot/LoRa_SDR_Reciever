@@ -1,0 +1,19 @@
+test_gui_replay_button (test_operator.OperatorTests.test_gui_replay_button) ... ok
+test_queue_overrun_keeps_original_recording (test_operator.OperatorTests.test_queue_overrun_keeps_original_recording) ... ok
+test_adc_and_gain (test_receiver.ReceiverTests.test_adc_and_gain) ... ok
+test_check_transmitter_readback (test_receiver.ReceiverTests.test_check_transmitter_readback) ... ok
+test_gap_resets_burst_and_preserves_next_start (test_receiver.ReceiverTests.test_gap_resets_burst_and_preserves_next_start) ... ok
+test_generic_crc_and_header_modes (test_receiver.ReceiverTests.test_generic_crc_and_header_modes) ... ok
+test_golden_telemetry (test_receiver.ReceiverTests.test_golden_telemetry) ... ok
+test_independent_crc_gates (test_receiver.ReceiverTests.test_independent_crc_gates) ... ok
+test_motion_and_sample_clock (test_receiver.ReceiverTests.test_motion_and_sample_clock) ... ok
+test_occupied_band_and_ldro (test_receiver.ReceiverTests.test_occupied_band_and_ldro) ... ok
+test_odd_recorder_gaps (test_receiver.ReceiverTests.test_odd_recorder_gaps) ... ok
+test_scoring_duplicate_false_missing_and_periods (test_receiver.ReceiverTests.test_scoring_duplicate_false_missing_and_periods) ... ok
+test_sidecar_integrity (test_receiver.ReceiverTests.test_sidecar_integrity) ... ok
+test_sync_word_and_noise_rejection (test_receiver.ReceiverTests.test_sync_word_and_noise_rejection) ... ok
+
+----------------------------------------------------------------------
+Ran 14 tests in 5.234s
+
+OK

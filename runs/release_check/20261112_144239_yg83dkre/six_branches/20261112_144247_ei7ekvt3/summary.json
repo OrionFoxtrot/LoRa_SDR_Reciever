@@ -1,0 +1,146 @@
+{
+  "mode": "replay",
+  "evidence": "synthetic IQ replay",
+  "profile": {
+    "center_hz": 915000000,
+    "sample_rate_hz": 1000000,
+    "carriers_hz": [
+      914875000,
+      915125000
+    ],
+    "spreading_factors": [
+      10,
+      11,
+      12
+    ],
+    "bandwidth_hz": 125000,
+    "sync_word": 18,
+    "explicit_header": true,
+    "coding_rate_denominator": 7,
+    "phy_crc": true,
+    "preamble_symbols": 8,
+    "ldro": "auto",
+    "invert_iq": false,
+    "implicit_length": 55,
+    "max_cfo_hz": 18000,
+    "ldro_by_sf": {
+      "10": false,
+      "11": true,
+      "12": true
+    }
+  },
+  "run_directory": "C:\\Users\\lohat\\Desktop\\DeSCENT_Comms\\LoRa_SDR_Reciever\\runs\\release_check\\20261112_144239_yg83dkre\\six_branches\\20261112_144247_ei7ekvt3",
+  "started_utc": "2026-11-12T19:42:47.029257+00:00",
+  "decoder_version": "0.3.0",
+  "status": "complete",
+  "branches": {
+    "914875000/SF10": {
+      "packets": 1,
+      "phy_pass": 1,
+      "app_pass": 1,
+      "syncs": 1
+    },
+    "914875000/SF11": {
+      "packets": 1,
+      "phy_pass": 1,
+      "app_pass": 1,
+      "syncs": 1
+    },
+    "914875000/SF12": {
+      "packets": 1,
+      "phy_pass": 1,
+      "app_pass": 1,
+      "syncs": 1
+    },
+    "915125000/SF10": {
+      "packets": 1,
+      "phy_pass": 1,
+      "app_pass": 1,
+      "syncs": 1
+    },
+    "915125000/SF11": {
+      "packets": 1,
+      "phy_pass": 1,
+      "app_pass": 1,
+      "syncs": 1
+    },
+    "915125000/SF12": {
+      "packets": 1,
+      "phy_pass": 1,
+      "app_pass": 1,
+      "syncs": 1
+    }
+  },
+  "false_decodes": null,
+  "duplicate_decodes": null,
+  "upstream_usb_dropped_samples": null,
+  "capture_path": "C:\\Users\\lohat\\Desktop\\DeSCENT_Comms\\LoRa_SDR_Reciever\\runs\\release_check\\20261112_144239_yg83dkre\\iq\\six_branches.iq",
+  "capture_sha256": "6d07a0bf19a4c6da8dc6dac7224f5e15c0cb75837093dfcaf1e0c1850b313623",
+  "paced": false,
+  "sidecar": {
+    "format": "rtl_sdr unsigned 8-bit interleaved I/Q",
+    "center_hz": 915000000,
+    "sample_rate_hz": 1000000,
+    "synthetic": true,
+    "generator": "controlled fixture",
+    "noise_sigma_per_component": 0.012,
+    "seed": 916,
+    "bytes_received": 7020000,
+    "bytes_written": 7020000,
+    "bytes_dropped": 0,
+    "gaps": []
+  },
+  "iq_format": "CU8",
+  "gap_count": 0,
+  "recorded_unavailable_samples": 0,
+  "sic_enabled": false,
+  "error": null,
+  "capture_seconds": 3.51,
+  "processed_samples": 3510000,
+  "dropped_samples": 0,
+  "processing_seconds": 0.4571196000033524,
+  "processing_x_realtime": 7.6785156444271,
+  "elapsed_seconds": 0.4769499999820255,
+  "elapsed_x_realtime": 7.359261977423795,
+  "clipped_samples": 0,
+  "clipped_sample_fraction": 0.0,
+  "peak_block_clip_fraction": 0.0,
+  "peak_backlog_s": 0.0,
+  "backlog_slope_s_per_s": null,
+  "backlog_growing": null,
+  "backlog_history_s": [],
+  "crc_counts": {
+    "phy_crc_ok/True": 6,
+    "application_crc_ok/True": 6
+  },
+  "decoder_counters": {
+    "914875000/SF10/syncs": 1,
+    "914875000/SF10/headers": 1,
+    "914875000/SF10/packets": 1,
+    "914875000/SF11/syncs": 1,
+    "914875000/SF11/headers": 1,
+    "914875000/SF11/packets": 1,
+    "914875000/SF12/syncs": 1,
+    "914875000/SF12/headers": 1,
+    "914875000/SF12/packets": 1,
+    "915125000/SF10/syncs": 1,
+    "915125000/SF10/headers": 1,
+    "915125000/SF10/packets": 1,
+    "915125000/SF11/syncs": 1,
+    "915125000/SF11/headers": 1,
+    "915125000/SF11/packets": 1,
+    "915125000/SF12/syncs": 1,
+    "915125000/SF12/headers": 1,
+    "915125000/SF12/packets": 1
+  },
+  "packets": 6,
+  "periods": [
+    {
+      "start_s": 0,
+      "complete": false,
+      "unique_valid_chipsats": 6,
+      "reached_80": false
+    }
+  ],
+  "fraction_complete_periods_at_least_80": null
+}

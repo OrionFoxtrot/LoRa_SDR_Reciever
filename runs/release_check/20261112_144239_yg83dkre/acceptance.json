@@ -1,0 +1,103 @@
+{
+  "python": "3.13.17 (tags/v3.13.17:64e080d, Oct 21 2026, 14:08:53) [MSC v.1944 64 bit (AMD64)]",
+  "host": "Windows-11-10.0.26300-SP0",
+  "profile": {
+    "center_hz": 915000000,
+    "sample_rate_hz": 1000000,
+    "carriers_hz": [
+      914875000,
+      915125000
+    ],
+    "spreading_factors": [
+      10,
+      11,
+      12
+    ],
+    "bandwidth_hz": 125000,
+    "sync_word": 18,
+    "explicit_header": true,
+    "coding_rate_denominator": 7,
+    "phy_crc": true,
+    "preamble_symbols": 8,
+    "ldro": "auto",
+    "invert_iq": false,
+    "implicit_length": 55,
+    "max_cfo_hz": 18000,
+    "ldro_by_sf": {
+      "10": false,
+      "11": true,
+      "12": true
+    }
+  },
+  "gates": {
+    "stream, codec, telemetry, gain, settings and scoring tests": true,
+    "three independent isolated packets and equal SF11/SF12 overlap": true,
+    "all six concurrent branches, byte- and CRC-valid": true
+  },
+  "physical_rtl_sdr": "unverified",
+  "flight_register_readback": "unverified",
+  "unit_tests": 14,
+  "epfl_interop": {
+    "run_directory": "C:\\Users\\lohat\\Desktop\\DeSCENT_Comms\\LoRa_SDR_Reciever\\runs\\release_check\\20261112_144239_yg83dkre\\epfl_interop\\20261112_144245_kgrtz38l",
+    "evidence": "synthetic IQ replay",
+    "capture_seconds": 10.25,
+    "processing_seconds": 1.0976184001483489,
+    "elapsed_seconds": 1.1317298000212759,
+    "processing_x_realtime": 9.338400302522862,
+    "dropped_samples": 0,
+    "clipped_samples": 0,
+    "peak_backlog_s": 0.0,
+    "backlog_growing": null,
+    "backlog_slope_s_per_s": null,
+    "capture_sha256": "ea1c55fdc7c7c53df9905c84794d6ce85e863e99898ef7ddc3805ee828a1f618",
+    "offered": 5,
+    "matched": 5,
+    "missed": 0,
+    "false_decodes": 0,
+    "duplicate_decodes": 0,
+    "rejected_crc_or_unverified": 0,
+    "periods": [
+      {
+        "start_s": 0,
+        "complete": false,
+        "unique_valid_chipsats": 3,
+        "reached_80": false,
+        "offered_chipsats": 3
+      }
+    ],
+    "max_abs_timing_error_ms": 0.001000000000139778,
+    "fraction_complete_periods_at_least_80": null
+  },
+  "six_branches": {
+    "run_directory": "C:\\Users\\lohat\\Desktop\\DeSCENT_Comms\\LoRa_SDR_Reciever\\runs\\release_check\\20261112_144239_yg83dkre\\six_branches\\20261112_144247_ei7ekvt3",
+    "evidence": "synthetic IQ replay",
+    "capture_seconds": 3.51,
+    "processing_seconds": 0.4571196000033524,
+    "elapsed_seconds": 0.4769499999820255,
+    "processing_x_realtime": 7.6785156444271,
+    "dropped_samples": 0,
+    "clipped_samples": 0,
+    "peak_backlog_s": 0.0,
+    "backlog_growing": null,
+    "backlog_slope_s_per_s": null,
+    "capture_sha256": "6d07a0bf19a4c6da8dc6dac7224f5e15c0cb75837093dfcaf1e0c1850b313623",
+    "offered": 6,
+    "matched": 6,
+    "missed": 0,
+    "false_decodes": 0,
+    "duplicate_decodes": 0,
+    "rejected_crc_or_unverified": 0,
+    "periods": [
+      {
+        "start_s": 0,
+        "complete": false,
+        "unique_valid_chipsats": 6,
+        "reached_80": false,
+        "offered_chipsats": 6
+      }
+    ],
+    "max_abs_timing_error_ms": 0.001000000000001,
+    "fraction_complete_periods_at_least_80": null
+  },
+  "passed": true
+}
