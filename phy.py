@@ -3,7 +3,7 @@ from functools import lru_cache
 import numpy as np
 from lora_phy.common import calc_sym_num
 from lora_phy.rx import LoRaReceiver, diag_deinterleave
-from lora_phy.tx import LoRaTransmitter
+from lora_phy.tx import LoRaTransmitter, TxProcessing, diag_interleave
 
 
 class Codec:
@@ -41,6 +41,46 @@ class Codec:
         if len(data) < length + 2*has_crc:
             raise ValueError("Incomplete decoded codeword block")
         return data[:length], data[length:length+2] == bytes(expected) if has_crc else None
+
+    def soft_payload(self, symbols, magnitudes, header):
+        """Retry the payload using FFT evidence for each bit of a LoRa codeword."""
+        cr = header[1]
+        block_size = 4 + cr
+        if len(symbols) <= 8:
+            return None
+        ldro = self.profile.de(self.sf)
+        width = self.sf - 2*int(ldro)
+        codec = TxProcessing(self.sf, ldro)
+
+        # Ask the same encoder for all valid codewords and symbol-bin labels.
+        # Its leading header block uses a different coding rate and bin spacing.
+        nibbles = np.r_[np.zeros(self.sf-2, dtype=np.uint8), np.arange(16, dtype=np.uint8)]
+        words = codec.hamming_encode(nibbles, cr)[-16:]
+        columns = np.arange(block_size)
+        signs = 2 * ((words[:, None] >> columns) & 1).astype(np.float32) - 1
+        labels = np.arange(1 << width, dtype=np.uint16)
+        prefix = np.zeros(8, dtype=np.uint16)
+        bins = codec.gray_decoding(np.r_[prefix, labels])[8:]
+        bit_masks = (labels[:, None] >> np.arange(width) & 1).astype(bool)
+
+        corrected = symbols.copy()
+        for start in range(8, len(symbols), block_size):
+            block = slice(start, start + block_size)
+            peaks = magnitudes[block][:, bins]
+            # Max-log bit evidence. Close competing peaks contribute less.
+            evidence = np.stack([peaks[:, ones].max(axis=1) - peaks[:, ~ones].max(axis=1)
+                                 for ones in bit_masks.T], axis=1)
+            # Undo the diagonal rotation before scoring the 16 legal codewords.
+            evidence = np.stack([np.roll(row, col) for col, row in enumerate(evidence)], axis=1)
+            chosen = words[(evidence @ signs.T).argmax(axis=1)]
+            interleaved = diag_interleave(chosen, block_size)
+            corrected[block] = codec.gray_decoding(np.r_[prefix, interleaved])[8:]
+
+        if not np.array_equal(corrected, symbols):
+            data, ok = self.payload(corrected, header)
+            if ok:
+                return data
+        return None
 
 
 def encode(profile, sf, data, cr, crc):

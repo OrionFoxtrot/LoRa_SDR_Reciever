@@ -1,5 +1,6 @@
 """Replay-only, single additional blind search on a fitted CRC-gated residual."""
 from dataclasses import dataclass
+from bisect import bisect_left, insort
 import numpy as np
 from phy import encode, symbol_plan
 
@@ -18,10 +19,12 @@ class Donor:
 
 
 class Cancellation:
-    def __init__(self, profile, packets):
+    def __init__(self, profile, packets, cancelled=None):
         self.profile = p = profile
         self.donors = []
         for row in packets:
+            if cancelled and cancelled():
+                break
             if row["phy_crc_ok"] is not True or row["application_crc_ok"] is False:
                 continue
             sf = row["sf"]
@@ -90,19 +93,56 @@ def same_detection(a, b):
             and abs(a["start_sample"]-b["start_sample"]) <= 64)
 
 
-def merge_passes(primary, residual):
+def repeat_window(row,sample_rate_hz=1_000_000):
+    """One symbol bounds a weak residual's preamble jitter for an identical payload."""
+    bw=row.get("bandwidth_hz")
+    return max(64,round(sample_rate_hz*(1<<int(row["sf"]))/int(bw))) if bw else 64
+
+
+def merge_passes(primary, residual, cancelled=None, sample_rate_hz=1_000_000):
     accepted = list(primary)
+    # Search the candidate's 65-sample bucket and its two neighbours.
+    # Keeping the original insertion order preserves the previous tie behaviour.
+    bins={}
+    fingerprints={}
+    def key(row):
+        return row["carrier_hz"],row["sf"],row["start_sample"]//65
+    def identity(row):
+        return row["carrier_hz"],row["sf"],row["payload_hex"]
+    def remember(row):
+        if row["phy_crc_ok"] is True:
+            insort(fingerprints.setdefault(identity(row),[]),row["start_sample"])
+    def add(row):
+        bins.setdefault(key(row),[]).append(len(accepted))
+        remember(row)
+        accepted.append(row)
+    for i,row in enumerate(accepted):
+        bins.setdefault(key(row),[]).append(i)
+        remember(row)
     repeated = 0
     for row in residual:
-        matches = [i for i, p in enumerate(accepted) if same_detection(p, row)]
+        if cancelled and cancelled():
+            raise InterruptedError("Cancellation pass stopped")
+        if row["phy_crc_ok"] is True:
+            timings=fingerprints.get(identity(row),[])
+            span=repeat_window(row,sample_rate_hz)
+            at=row["start_sample"]
+            j=bisect_left(timings,at-span)
+            if j<len(timings) and timings[j]<=at+span:
+                repeated+=1
+                continue
+        fc,sf,k=key(row)
+        matches=sorted(i for b in (k-1,k,k+1) for i in bins.get((fc,sf,b),()) if same_detection(accepted[i],row))
         if not matches:
-            accepted.append(row)
+            add(row)
         elif row["phy_crc_ok"] is True:
             good = [i for i in matches if accepted[i]["phy_crc_ok"] is True]
             if not good:
-                accepted[matches[0]] = row
-            elif any(accepted[i]["payload_hex"] == row["payload_hex"] for i in good):
-                repeated += 1
+                idx=matches[0]
+                bins[key(accepted[idx])].remove(idx)
+                accepted[idx]=row
+                bins.setdefault(key(row),[]).append(idx)
+                remember(row)
             else:
-                accepted.append(row)
+                add(row)
     return sorted(accepted, key=lambda r:r["start_sample"]), repeated

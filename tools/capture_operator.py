@@ -50,7 +50,7 @@ def main():
             time.sleep(.02)
         if window.phase!="saved" or not window.model.nodes:
             raise RuntimeError(window.detail.cget("text"))
-        window.panels.sort_by("last")
+        window.panels.sort_by("age")
         window.panels.fleet.yview_moveto(0)
         first=window.panels.fleet.get_children()[0]
         window.panels.fleet.selection_set(first)

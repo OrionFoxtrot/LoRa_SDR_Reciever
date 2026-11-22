@@ -8,6 +8,9 @@ import numpy as np
 from scipy.signal import resample_poly
 from phy import waveform
 from reports import write_json
+from config import ROOT
+
+NINE_BRANCH_PROFILE = ROOT/"tests"/"nine_branch_profile.json"
 
 # Receiver-side golden payloads: first three exact/CRC-valid matches in
 # General Diagnostics/100CS_20261109_125123_truth_comparison.csv.

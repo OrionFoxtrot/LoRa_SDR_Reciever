@@ -9,7 +9,7 @@ import platform
 import sys
 import unittest
 from config import ROOT,profile_from_settings,read_profile
-from fixtures import Event,GOLD,fleet_events,generate,payload,power_events
+from fixtures import NINE_BRANCH_PROFILE,Event,GOLD,fleet_events,generate,payload,power_events
 from reports import directory,score,write_json
 from run import live,replay
 from tests.loopback import BenchSocket
@@ -60,10 +60,16 @@ def paced_check(p,out,report):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out",type=Path,default=ROOT/"runs"/"acceptance")
-    parser.add_argument("--quick",action="store_true",help="unit, independent PHY, all concurrent branches")
-    parser.add_argument("--paced-from",type=Path,help="repeat the 1x socket check using an existing acceptance run")
+    mode=parser.add_mutually_exclusive_group()
+    mode.add_argument("--quick",action="store_true",help="unit, independent PHY, all concurrent branches")
+    mode.add_argument("--field",action="store_true",help="synthetic 100-node staggered load, two-radio GPS and generic payloads")
+    mode.add_argument("--paced-from",type=Path,help="repeat the 1x socket check using an existing acceptance run")
     args=parser.parse_args()
-    p=read_profile()
+    if args.field:
+        from field_acceptance import campaign
+        campaign(args.out)
+        return 0
+    p=read_profile(NINE_BRANCH_PROFILE)
     out=args.paced_from.resolve() if args.paced_from else directory(args.out)
     print("Acceptance directory",out,flush=True)
     report=dict(python=sys.version,host=platform.platform(),profile=p.report(),gates={},

@@ -1,0 +1,376 @@
+{
+  "mode": "live",
+  "evidence": "live hardware",
+  "run_id": "20261113_155044_5g154eet",
+  "run_name": "Bench run",
+  "profile": {
+    "center_hz": 915000000,
+    "sample_rate_hz": 1000000,
+    "carriers_hz": [
+      914875000,
+      915000000,
+      915125000
+    ],
+    "spreading_factors": [
+      10,
+      11,
+      12
+    ],
+    "bandwidth_hz": 125000,
+    "sync_word": 18,
+    "explicit_header": true,
+    "coding_rate_denominator": 7,
+    "phy_crc": true,
+    "preamble_symbols": 8,
+    "ldro": "auto",
+    "invert_iq": false,
+    "implicit_length": 55,
+    "max_cfo_hz": 18000,
+    "monitor_only_hz": [
+      915000000
+    ],
+    "ldro_by_sf": {
+      "10": false,
+      "11": true,
+      "12": true
+    }
+  },
+  "run_directory": "C:\\Users\\lohat\\Desktop\\DeSCENT_Comms\\LoRa_SDR_Reciever\\runs\\20261113_155044_5g154eet",
+  "started_utc": "2026-11-13T20:50:44.317324+00:00",
+  "decoder_version": "0.3.0",
+  "status": "stopped",
+  "branches": {
+    "914875000/SF10": {
+      "packets": 0,
+      "phy_pass": 0,
+      "app_pass": 0,
+      "syncs": 0
+    },
+    "914875000/SF11": {
+      "packets": 0,
+      "phy_pass": 0,
+      "app_pass": 0,
+      "syncs": 0
+    },
+    "914875000/SF12": {
+      "packets": 0,
+      "phy_pass": 0,
+      "app_pass": 0,
+      "syncs": 0
+    },
+    "915000000/SF10": {
+      "packets": 0,
+      "phy_pass": 0,
+      "app_pass": 0,
+      "syncs": 0
+    },
+    "915000000/SF11": {
+      "packets": 0,
+      "phy_pass": 0,
+      "app_pass": 0,
+      "syncs": 0
+    },
+    "915000000/SF12": {
+      "packets": 0,
+      "phy_pass": 0,
+      "app_pass": 0,
+      "syncs": 0
+    },
+    "915125000/SF10": {
+      "packets": 0,
+      "phy_pass": 0,
+      "app_pass": 0,
+      "syncs": 0
+    },
+    "915125000/SF11": {
+      "packets": 0,
+      "phy_pass": 0,
+      "app_pass": 0,
+      "syncs": 0
+    },
+    "915125000/SF12": {
+      "packets": 0,
+      "phy_pass": 0,
+      "app_pass": 0,
+      "syncs": 0
+    }
+  },
+  "false_decodes": null,
+  "duplicate_decodes": null,
+  "upstream_usb_dropped_samples": null,
+  "requested_gain_db": 10.0,
+  "auto_gain_requested": true,
+  "gain_setup": {
+    "gain_db": 44.5,
+    "level": {
+      "rms_lsb": 3.139394998550415,
+      "max_rms_lsb": 3.7191505432128906,
+      "peak_lsb": 14.5,
+      "clip_fraction": 0.0
+    },
+    "observations": [
+      {
+        "gain_db": 8.7,
+        "rms_lsb": 0.5404109954833984,
+        "max_rms_lsb": 0.5588219165802002,
+        "peak_lsb": 1.5,
+        "clip_fraction": 0.0
+      },
+      {
+        "gain_db": 25.4,
+        "rms_lsb": 0.813026487827301,
+        "max_rms_lsb": 0.8595572113990784,
+        "peak_lsb": 3.5,
+        "clip_fraction": 0.0
+      },
+      {
+        "gain_db": 38.6,
+        "rms_lsb": 2.07531476020813,
+        "max_rms_lsb": 3.1559536457061768,
+        "peak_lsb": 9.5,
+        "clip_fraction": 0.0
+      },
+      {
+        "gain_db": 44.5,
+        "rms_lsb": 3.3116188049316406,
+        "max_rms_lsb": 3.8136794567108154,
+        "peak_lsb": 15.5,
+        "clip_fraction": 0.0
+      }
+    ],
+    "headroom_checks": [
+      {
+        "gain_db": 44.5,
+        "rms_lsb": 3.139394998550415,
+        "max_rms_lsb": 3.7191505432128906,
+        "peak_lsb": 14.5,
+        "clip_fraction": 0.0
+      }
+    ],
+    "warning": null
+  },
+  "gain_db": 44.5,
+  "ppm": 0,
+  "device": 0,
+  "rtl0_header_hex": "52544c30000000050000001d",
+  "rtl_tcp_endpoint": "local child",
+  "capture_start_utc": "2026-11-13T20:50:51.379985+00:00",
+  "recording": null,
+  "queue_highwater_blocks": 1,
+  "capture_sha256": null,
+  "trailing_unpaired_bytes": 0,
+  "processed_iq_sha256": "f2cf63a86361355af9a31156e545ef47469d126e6b44e55eed3a141faf581930",
+  "error": null,
+  "capture_seconds": 20.840448,
+  "mission": {
+    "size": 100,
+    "period": 30.0,
+    "target": 80,
+    "epoch": null,
+    "alignment": "capture-aligned",
+    "station": null,
+    "roster": {}
+  },
+  "mission_periods": [
+    {
+      "index": 0,
+      "start_s": 0.0,
+      "end_s": 30.0,
+      "heard": 0,
+      "gps": 0,
+      "final": true,
+      "partial": true,
+      "gap": false,
+      "met": false,
+      "state": "Partial period"
+    }
+  ],
+  "gap_ranges_s": [],
+  "processed_samples": 20840448,
+  "dropped_samples": 0,
+  "dropped_blocks": 0,
+  "processing_seconds": 3.43320879995008,
+  "processing_x_realtime": 6.0702535774413215,
+  "elapsed_seconds": 27.927144199988106,
+  "elapsed_x_realtime": 0.7462434343719568,
+  "clipped_samples": 2331553,
+  "clipped_sample_fraction": 0.11187633778314171,
+  "peak_block_clip_fraction": 1.0,
+  "peak_backlog_s": 0.0,
+  "backlog_slope_s_per_s": 0.0,
+  "backlog_growing": false,
+  "backlog_history_s": [
+    [
+      7.229522699984955,
+      0.0
+    ],
+    [
+      7.746202399983304,
+      0.0
+    ],
+    [
+      8.264532700006384,
+      0.0
+    ],
+    [
+      8.786279099993408,
+      0.0
+    ],
+    [
+      9.316327599983197,
+      0.0
+    ],
+    [
+      9.840900499984855,
+      0.0
+    ],
+    [
+      10.358152100001462,
+      0.0
+    ],
+    [
+      10.887876499997219,
+      0.0
+    ],
+    [
+      11.410757899982855,
+      0.0
+    ],
+    [
+      11.936954100005096,
+      0.0
+    ],
+    [
+      12.459247399994638,
+      0.0
+    ],
+    [
+      12.981192699982785,
+      0.0
+    ],
+    [
+      13.510154499992495,
+      0.0
+    ],
+    [
+      14.03050500000245,
+      0.0
+    ],
+    [
+      14.558176299993647,
+      0.0
+    ],
+    [
+      15.082664799992926,
+      0.0
+    ],
+    [
+      15.60754050000105,
+      0.0
+    ],
+    [
+      16.131281699985266,
+      0.0
+    ],
+    [
+      16.6554763999884,
+      0.0
+    ],
+    [
+      17.193370099994354,
+      0.0
+    ],
+    [
+      17.699265799979912,
+      0.0
+    ],
+    [
+      18.223857300006784,
+      0.0
+    ],
+    [
+      18.7497938000015,
+      0.0
+    ],
+    [
+      19.27485469999374,
+      0.0
+    ],
+    [
+      19.796521399985068,
+      0.0
+    ],
+    [
+      20.319018099980894,
+      0.0
+    ],
+    [
+      20.84549809998134,
+      0.0
+    ],
+    [
+      21.370232299988857,
+      0.0
+    ],
+    [
+      21.893955000006827,
+      0.0
+    ],
+    [
+      22.418130000005476,
+      0.0
+    ],
+    [
+      22.943003899999894,
+      0.0
+    ],
+    [
+      23.465849300002446,
+      0.0
+    ],
+    [
+      23.995906399999512,
+      0.0
+    ],
+    [
+      24.51569489997928,
+      0.0
+    ],
+    [
+      25.041907899983926,
+      0.0
+    ],
+    [
+      25.564718099980382,
+      0.0
+    ],
+    [
+      26.086658599990187,
+      0.0
+    ],
+    [
+      26.612755299982382,
+      0.0
+    ],
+    [
+      27.137506200000644,
+      0.0
+    ],
+    [
+      27.66017349998583,
+      0.0
+    ]
+  ],
+  "crc_counts": {},
+  "decoder_counters": {},
+  "packets": 0,
+  "periods": [
+    {
+      "start_s": 0,
+      "complete": false,
+      "unique_valid_chipsats": 0,
+      "reached_80": false
+    }
+  ],
+  "fraction_complete_periods_at_least_80": null
+}

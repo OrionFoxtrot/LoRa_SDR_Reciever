@@ -1,0 +1,135 @@
+{
+  "mode": "live",
+  "evidence": "live hardware",
+  "run_id": "20261113_152616_lb1m78gj",
+  "run_name": "Bench run 6",
+  "profile": {
+    "center_hz": 915000000,
+    "sample_rate_hz": 1000000,
+    "carriers_hz": [
+      914875000,
+      915000000,
+      915125000
+    ],
+    "spreading_factors": [
+      10,
+      11,
+      12
+    ],
+    "bandwidth_hz": 125000,
+    "sync_word": 18,
+    "explicit_header": true,
+    "coding_rate_denominator": 7,
+    "phy_crc": true,
+    "preamble_symbols": 8,
+    "ldro": "auto",
+    "invert_iq": false,
+    "implicit_length": 55,
+    "max_cfo_hz": 18000,
+    "monitor_only_hz": [
+      915000000
+    ],
+    "ldro_by_sf": {
+      "10": false,
+      "11": true,
+      "12": true
+    }
+  },
+  "run_directory": "C:\\Users\\lohat\\Desktop\\DeSCENT_Comms\\LoRa_SDR_Reciever\\runs\\20261113_152616_lb1m78gj",
+  "started_utc": "2026-11-13T20:26:16.844809+00:00",
+  "decoder_version": "0.3.0",
+  "status": "failed",
+  "branches": {
+    "914875000/SF10": {
+      "packets": 0,
+      "phy_pass": 0,
+      "app_pass": 0,
+      "syncs": 0
+    },
+    "914875000/SF11": {
+      "packets": 0,
+      "phy_pass": 0,
+      "app_pass": 0,
+      "syncs": 0
+    },
+    "914875000/SF12": {
+      "packets": 0,
+      "phy_pass": 0,
+      "app_pass": 0,
+      "syncs": 0
+    },
+    "915000000/SF10": {
+      "packets": 0,
+      "phy_pass": 0,
+      "app_pass": 0,
+      "syncs": 0
+    },
+    "915000000/SF11": {
+      "packets": 0,
+      "phy_pass": 0,
+      "app_pass": 0,
+      "syncs": 0
+    },
+    "915000000/SF12": {
+      "packets": 0,
+      "phy_pass": 0,
+      "app_pass": 0,
+      "syncs": 0
+    },
+    "915125000/SF10": {
+      "packets": 0,
+      "phy_pass": 0,
+      "app_pass": 0,
+      "syncs": 0
+    },
+    "915125000/SF11": {
+      "packets": 0,
+      "phy_pass": 0,
+      "app_pass": 0,
+      "syncs": 0
+    },
+    "915125000/SF12": {
+      "packets": 0,
+      "phy_pass": 0,
+      "app_pass": 0,
+      "syncs": 0
+    }
+  },
+  "false_decodes": null,
+  "duplicate_decodes": null,
+  "upstream_usb_dropped_samples": null,
+  "requested_gain_db": 10.0,
+  "auto_gain_requested": true,
+  "error": "Signal levels changed during Auto Set; settings kept. Retry with representative traffic.",
+  "capture_seconds": 0.0,
+  "mission": {
+    "size": 100,
+    "period": 30.0,
+    "target": 80,
+    "epoch": null,
+    "alignment": "capture-aligned",
+    "station": null,
+    "roster": {}
+  },
+  "mission_periods": [],
+  "gap_ranges_s": [],
+  "processed_samples": 0,
+  "dropped_samples": 0,
+  "dropped_blocks": 0,
+  "processing_seconds": 0.0,
+  "processing_x_realtime": null,
+  "elapsed_seconds": 7.376334000000497,
+  "elapsed_x_realtime": 0.0,
+  "clipped_samples": 0,
+  "clipped_sample_fraction": 0.0,
+  "peak_block_clip_fraction": 0.0,
+  "peak_backlog_s": 0.0,
+  "backlog_slope_s_per_s": null,
+  "backlog_growing": null,
+  "backlog_history_s": [],
+  "crc_counts": {},
+  "decoder_counters": {},
+  "packets": 0,
+  "periods": [],
+  "fraction_complete_periods_at_least_80": null
+}

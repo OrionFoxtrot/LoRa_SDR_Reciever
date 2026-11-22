@@ -10,12 +10,35 @@ import tkinter as tk
 from tkinter import ttk
 
 from config import ROOT
-from sources import LiveInput
+from fixtures import NINE_BRANCH_PROFILE
+from front_end import FrontEndPreferences
+from sources import Layout, LiveInput, StreamEnded, read_exact
 from types import SimpleNamespace
 from config import read_profile
 
 
 class OperatorTests(unittest.TestCase):
+    def test_terminal_connection_gap_preserves_empty_iq_timeline(self):
+        skin=SimpleNamespace(p=read_profile(),gain=10.,ppm=0)
+        with tempfile.TemporaryDirectory() as tmp:
+            source=LiveInput(skin,tmp,threading.Event(),seconds=.05,initial_error=ConnectionRefusedError())
+            self.assertEqual(list(source.blocks()),[])
+            layout=Layout.read(Path(tmp)/"capture.iq")
+            self.assertEqual((layout.samples,layout.unavailable),(50_000,50_000))
+            self.assertEqual(layout.gap_ranges(1_000_000),[(0,.05)])
+            gap,=layout.metadata["source_dropouts"]
+            self.assertEqual((gap["reason"],gap["resumed"],gap["reconnect_attempts"]),("socket_error",False,0))
+
+    def test_stall_timeout_keeps_only_received_bytes(self):
+        import socket
+        from unittest.mock import Mock
+        conn=Mock()
+        conn.recv.side_effect=[b"abc",socket.timeout(),socket.timeout()]
+        with patch("sources.time.monotonic",side_effect=[0.,.5,3.49,3.5]):
+            with self.assertRaises(StreamEnded) as caught:
+                read_exact(conn,16,threading.Event())
+        self.assertEqual((caught.exception.reason,caught.exception.partial),("iq_timeout",b"abc"))
+
     def test_queue_overrun_keeps_original_recording(self):
         skin=SimpleNamespace(p=read_profile(),gain=10.,ppm=0,sock=object())
         with tempfile.TemporaryDirectory() as tmp:
@@ -81,7 +104,9 @@ class OperatorTests(unittest.TestCase):
                 root.after(150,inspect)
                 root.after(20000,dispose)
                 return root
-            with patch("operator_gui.ROOT",Path(tmp)),patch("operator_gui.tk.Tk",window):
+            with patch("operator_gui.ROOT",Path(tmp)),patch("operator_gui.tk.Tk",window), \
+                    patch("receiver_setup.DEFAULT_PROFILE",NINE_BRANCH_PROFILE), \
+                    patch("receiver_setup.FrontEndPreferences",return_value=FrontEndPreferences(Path(tmp)/"settings.db")):
                 open_gui("Replay",str(ROOT/"examples/epfl_bench.iq"))
             self.assertTrue(finished,"GUI did not finish replay")
             summary=next(Path(tmp).glob("runs/*/summary.json"))

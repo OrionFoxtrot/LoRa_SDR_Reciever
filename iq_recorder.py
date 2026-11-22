@@ -37,7 +37,7 @@ def default_recording_path(directory, freq_hz, gain_db, now=None):
 
 
 class IQRecorder:
-    def __init__(self, path, *, metadata=None, queue_bytes=QUEUE_BYTES,
+    def __init__(self, path, *, metadata=None, started_utc=None, queue_bytes=QUEUE_BYTES,
                  min_free_bytes=MIN_FREE_BYTES, free_check_bytes=FREE_CHECK_BYTES):
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -56,7 +56,8 @@ class IQRecorder:
         self.stopped_reason = None      # set when recording stops early
         self.error = None
         self.closed = False
-        self.started_utc = datetime.now(timezone.utc).isoformat()
+        self.started_utc = started_utc or datetime.now(timezone.utc).isoformat()
+        self.source_gap_bytes = 0
         self.digest = hashlib.sha256()
         self._file = open(self.path, "xb")
         self._write_sidecar()
@@ -83,6 +84,19 @@ class IQRecorder:
             self._queued += n
             self._file_end += pad + n
             self._q.put((pad, bytes(raw)))
+
+    def source_gap(self, samples, details):
+        """Advance the capture clock at the current accepted file offset without writing zeros."""
+        n = 2*samples
+        if not n or self.closed:
+            return
+        with self._lock:
+            self.received += n
+            if self.stopped_reason is None:
+                self.dropped += n
+                self.source_gap_bytes += n
+                self.gaps.append(dict(file_offset=self._file_end,dropped_bytes=n,
+                                      wall_utc=details["wall_start_utc"],**details))
 
     # ---- writer thread --------------------------------------------------------------
     def _run(self):
@@ -120,7 +134,8 @@ class IQRecorder:
                    finished_utc=datetime.now(timezone.utc).isoformat() if self.closed else None,
                    bytes_received=self.received, bytes_written=self.written, bytes_dropped=self.dropped,
                    sha256=self.digest.hexdigest() if self.closed and not self.error else None,
-                   gaps=self.gaps, stopped_reason=self.stopped_reason, error=self.error, **self.metadata)
+                   gaps=self.gaps, stopped_reason=self.stopped_reason, error=self.error,
+                   source_gap_bytes=self.source_gap_bytes, **self.metadata)
         tmp = self.sidecar.with_suffix(".tmp")
         tmp.write_text(json.dumps(doc, indent=2) + "\n")
         os.replace(tmp, self.sidecar)
@@ -146,4 +161,4 @@ class IQRecorder:
         return dict(path=str(self.path), bytes_written=self.written, bytes_dropped=self.dropped,
                     sha256=self.digest.hexdigest() if self.closed and not self.error else None,
                     gaps=len(self.gaps), queued_bytes=self._queued, stopped_reason=self.stopped_reason,
-                    error=self.error)
+                    error=self.error, source_gap_bytes=self.source_gap_bytes)

@@ -1,0 +1,60 @@
+{
+  "format": "rtl_sdr unsigned 8-bit interleaved I/Q",
+  "sample_rate_hz": 1000000,
+  "file": "capture.iq",
+  "started_utc": "2026-11-14T19:39:29.831682+00:00",
+  "finished_utc": "2026-11-14T19:40:27.262638+00:00",
+  "bytes_received": 114819072,
+  "bytes_written": 114819072,
+  "bytes_dropped": 0,
+  "sha256": "d1610995aeb0afe5aa51a81bf1f5ab72341e5028f7847055c7170aee861f321e",
+  "gaps": [],
+  "stopped_reason": null,
+  "error": null,
+  "center_hz": 915000000,
+  "gain_db": 49.6,
+  "ppm": 0,
+  "source": "rtl_tcp",
+  "synthetic": false,
+  "receiver_profile": {
+    "center_hz": 915000000,
+    "sample_rate_hz": 1000000,
+    "carriers_hz": [
+      914875000,
+      915000000,
+      915125000
+    ],
+    "spreading_factors": [
+      10,
+      11,
+      12
+    ],
+    "bandwidth_hz": 125000,
+    "sync_word": 18,
+    "explicit_header": true,
+    "coding_rate_denominator": 7,
+    "phy_crc": true,
+    "preamble_symbols": 8,
+    "ldro": "auto",
+    "invert_iq": false,
+    "implicit_length": 55,
+    "max_cfo_hz": 18000,
+    "monitor_only_hz": [
+      915000000
+    ],
+    "ldro_by_sf": {
+      "10": false,
+      "11": true,
+      "12": true
+    }
+  },
+  "mission": {
+    "size": 100,
+    "period": 30.0,
+    "target": 80,
+    "epoch": null,
+    "alignment": "capture-aligned",
+    "station": null,
+    "roster": {}
+  }
+}

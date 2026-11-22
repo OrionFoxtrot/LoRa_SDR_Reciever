@@ -1,5 +1,5 @@
 # Copyright (c) 2026 Mark Lohatepanont. MIT; see licenses/DeSCENT-MIT.txt.
-# Adapted from lrfhss_autoset.py. Gain-only scan, no LR-FHSS trigger estimation.
+# Adapted from lrfhss_autoset.py. LoRa uses a gain-only scan and bounded headroom rechecks.
 import math
 import struct
 import numpy as np
@@ -26,6 +26,16 @@ class AutoSetCancelled(Exception):
     pass
 
 
+def manual_gain_db(value):
+    try:
+        gain = float(value)
+    except (ValueError, TypeError):
+        gain = math.nan
+    if not -10 <= gain <= 60:
+        raise ValueError("Enter a manual tuner gain between -10 and 60 dB.")
+    return gain
+
+
 def supported_gains(dongle_header: bytes) -> tuple[float, ...]:
     if len(dongle_header) != 12 or dongle_header[:4] != b"RTL0":
         raise ValueError("Invalid RTL-SDR dongle header")
@@ -44,10 +54,10 @@ def adc_level(raw: bytes) -> dict:
         raise ValueError("Not enough complete IQ samples for Auto Set")
     pairs = a.reshape(-1, 2).astype(np.float32)
     # Remove DC separately in I and Q. Otherwise DC can masquerade as noise.
-    centred = pairs - pairs.mean(axis=0)
+    centred = pairs - pairs.mean(axis=0, dtype=np.float64).astype(np.float32)
     frames = centred[:len(centred)//2000*2000].reshape(-1, 2000, 2)
     rms = np.sqrt(np.mean(frames*frames, axis=(1, 2)))
-    return dict(rms_lsb=float(np.quantile(rms, .2)),
+    return dict(rms_lsb=float(np.quantile(rms, .2)), max_rms_lsb=float(rms.max()),
                 peak_lsb=float(np.quantile(np.abs(pairs-127.5), .9999)),
                 clip_fraction=float(np.mean(np.any((pairs == 0) | (pairs == 255), axis=1))))
 
@@ -61,18 +71,26 @@ def run_autoset(gains, initial_gain, *, set_gain, capture,
     gains = tuple(sorted(gains))
     if not gains:
         raise ValueError("No supported manual gain settings")
+
+    def measure(gain, seconds):
+        if cancelled():
+            raise AutoSetCancelled()
+        set_gain(gain)
+        raw = capture(seconds)
+        if cancelled():
+            raise AutoSetCancelled()
+        level = adc_level(raw)
+        if level["max_rms_lsb"] < .1:
+            raise ValueError("IQ has no measurable variation; check the source before Auto Set.")
+        return level
+
     observations = []
     gain = min(gains, key=lambda g: abs(g-initial_gain))
     for attempt in range(5):
-        if cancelled():
-            raise AutoSetCancelled()
         progress(f"Auto Set: measuring gain {gain:g} dB ({attempt+1}/5)...")
-        set_gain(gain)
-        level = adc_level(capture(.25))
+        level = measure(gain, .25)
         observations.append(dict(gain_db=gain, **level))
-        rms, peak = level["rms_lsb"], level["peak_lsb"]
-        if rms < .1:
-            raise ValueError("IQ has no measurable variation; check the source before Auto Set.")
+        rms, peak = max(level["rms_lsb"], .1), level["peak_lsb"]
         change = min(20*math.log10(TARGET_RMS/rms), 20*math.log10(PEAK_LIMIT/max(peak, .5)))
         if level["clip_fraction"] > CLIP_FRACTION:
             change = min(change, -8.)
@@ -84,16 +102,32 @@ def run_autoset(gains, initial_gain, *, set_gain, capture,
             break
         gain = next_gain
     safe = [row for row in observations if _safe(row)]
-    if not safe:
-        raise ValueError("No gain with sufficient ADC headroom was found; lower gain or reduce the RF input.")
-    best = min(safe, key=lambda row: abs(math.log(max(row["rms_lsb"], .1)/TARGET_RMS)))
-    gain = best["gain_db"]
-    if cancelled():
-        raise AutoSetCancelled()
-    progress(f"Auto Set: checking background at {gain:g} dB...")
-    set_gain(gain)
-    raw = capture(2.)
-    final_level = adc_level(raw)
-    if not _safe(final_level):
-        raise ValueError("Signal levels changed during Auto Set; settings kept. Retry with representative traffic.")
-    return dict(gain_db=gain, level=final_level, observations=observations)
+    best = min(safe, key=lambda row: abs(math.log(max(row["rms_lsb"], .1)/TARGET_RMS)), default=None)
+    gain = best["gain_db"] if best else gains[0]
+    checks = []
+    # A packet may first appear during the longer measurement. Step down once
+    # using its peak, then verify minimum gain if the input grows again.
+    for attempt in range(3):
+        progress(f"Auto Set: checking headroom at {gain:g} dB...")
+        level = measure(gain, 2.)
+        checks.append(dict(gain_db=gain, **level))
+        if _safe(level) or gain == gains[0]:
+            break
+        # Leave 3 dB of margin. A clipped peak understates the input level.
+        reduction = max(3., 20*math.log10(max(level["peak_lsb"], .5)/PEAK_LIMIT) + 3.)
+        if level["clip_fraction"] > CLIP_FRACTION:
+            reduction = max(8., reduction)
+        target = gain - reduction if attempt == 0 else gains[0]
+        gain = max((g for g in gains if g <= target), default=gains[0])
+        progress(f"Auto Set: signal exceeded headroom. Reducing gain to {gain:g} dB.")
+
+    warning = None
+    if not _safe(level):
+        issue = "clipping" if level["clip_fraction"] > CLIP_FRACTION else "limited ADC headroom"
+        warning = f"Auto Set measured {issue} at minimum gain ({gain:g} dB)."
+    elif gain == gains[0]:
+        warning = f"Auto Set reached minimum tuner gain ({gain:g} dB)."
+    progress(f"Auto Set selected {gain:g} dB.")
+    if warning:
+        progress(warning)
+    return dict(gain_db=gain, level=level, observations=observations, headroom_checks=checks, warning=warning)

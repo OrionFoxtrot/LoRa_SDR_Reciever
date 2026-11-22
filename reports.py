@@ -9,10 +9,12 @@ from pathlib import Path
 from telemetry import decode_descent_packet
 
 
-FIELDS = ("start_sample capture_s carrier_hz sf bandwidth_hz sync_word explicit_header "
+PACKET_FIELDS = ("start_sample capture_s carrier_hz sf bandwidth_hz sync_word explicit_header "
           "cr_denominator ldro preamble_symbols phy_crc_ok application_crc_ok chipsat_id "
           "packet_counter cfo_hz drift_hz_s clock_error_ppm preamble_power_dbfs pass_name payload_hex telemetry_json "
-          "run_id run_name receive_utc timestamp_source").split()
+          "run_id run_name receive_utc timestamp_source rssi_dbfs snr_db").split()
+TIMING_FIELDS = ["timing_check","sync_rail_samples","coarse_cfo_hz"]
+FIELDS = PACKET_FIELDS + TIMING_FIELDS
 
 
 def telemetry(row, pass_name):
@@ -90,7 +92,10 @@ def score(run, truth_path, offset_s=0., tolerance_s=.05):
             raise ValueError("Invalid transmit timestamp or payload")
         node = first("node_id", "chipsat_id", "csid")
         if node is None and len(data) == 55:
-            node = decode_descent_packet(data)["csid"]
+            try:
+                node = decode_descent_packet(data)["csid"]
+            except ValueError:
+                node=None  # A generic 55-byte payload has no DeSCENT identity.
         fc = first("carrier_hz", "channel_frequency_hz")
         sf = first("sf")
         event = dict(t=float(t), data=data.hex(), node=None if node is None else int(node),
@@ -160,5 +165,14 @@ def score(run, truth_path, offset_s=0., tolerance_s=.05):
                   max_abs_timing_error_ms=max(map(abs,dt_ms), default=None),
                   period_origin_capture_s=offset_s,
                   **periods(timed_ids,max(0.,summary["capture_seconds"]-offset_s),offered_ids,-offset_s))
+    from fleet_view import Packet
+    from mission import Mission, PeriodBook
+    mission=Mission.read(summary.get("mission")).aligned(summary.get("sidecar",{}),offset_s)
+    book=PeriodBook(mission)
+    for i in matched:
+        p=Packet.read(received[i])
+        if p.trusted:
+            book.hear(p)
+    result.update(mission=mission.dump(),scored_mission_periods=book.report(summary["capture_seconds"],summary.get("gap_ranges_s",[])))
     write_json(run/"score.json", result)
     return result

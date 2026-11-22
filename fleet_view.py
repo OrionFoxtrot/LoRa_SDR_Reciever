@@ -8,11 +8,14 @@ import os
 from pathlib import Path
 import tempfile
 
-from reports import FIELDS
+from reports import PACKET_FIELDS,TIMING_FIELDS
+from mission import Mission, PeriodBook, valid_fix, fix_time
+from observations import Observations, number
 
 LOG_LIMIT = 300
 HISTORY_LIMIT = 12
 STALE_SECONDS = 30  # One nominal DeSCENT reporting period.
+SENSOR_VALIDITY_MASK = 0x7F  # V2.5 bits 0–6 identify valid sensor groups. Bit 7 marks freshness.
 
 SCALARS = {
     "latitude_deg": "gps", "longitude_deg": "gps", "gps_altitude_msl_m": "gps",
@@ -71,7 +74,39 @@ class Packet:
     @property
     def trusted(self):
         return (self.node is not None and crc(self.row.get("application_crc_ok")) is True
-                and crc(self.row.get("phy_crc_ok")) is not False)
+                and crc(self.row.get("phy_crc_ok")) is True)
+
+    @property
+    def failed_crc(self):
+        return False in (crc(self.row.get("phy_crc_ok")), crc(self.row.get("application_crc_ok")))
+
+    @property
+    def counter(self):
+        value = self.row.get("packet_counter")
+        if value in (None, ""):
+            value = self.data.get("packet_counter")
+        return int(value) if value not in (None, "") else None
+
+    @property
+    def rssi(self):
+        return number(self.row.get("rssi_dbfs"))
+
+    @property
+    def snr(self):
+        return number(self.row.get("snr_db"))
+
+    @property
+    def sensor_mask(self):
+        raw = self.data.get("validity_raw")
+        if raw is None:
+            # Older journals can retain the 55-byte flight payload without this parsed field.
+            payload = self.row.get("payload_hex") or ""
+            if len(payload) == 110:
+                try:
+                    raw = int(payload[104:106], 16)
+                except ValueError:
+                    return None
+        return raw & SENSOR_VALIDITY_MASK if isinstance(raw, int) and 0 <= raw <= 255 else None
 
 
 @dataclass(frozen=True)
@@ -99,7 +134,7 @@ class Node:
         if self.latest is None or self.latest.t <= p.t:
             self.latest = p
         valid = p.data.get("valid", {})
-        if valid.get("gps") and (self.position is None or self.position.t <= p.t):
+        if valid_fix(p) and (self.position is None or fix_time(self.position)[0] <= fix_time(p)[0]):
             self.position = p
         if valid.get("state_of_charge") and (self.power is None or self.power.t <= p.t):
             self.power = p
@@ -109,20 +144,47 @@ class Node:
 
 
 class Fleet:
-    def __init__(self):
+    def __init__(self,mission=None):
         self.nodes = {}
         self.log = deque(maxlen=LOG_LIMIT)
         self.channels = {}
         self.total = 0
+        self.failed = 0
+        self.book=PeriodBook(mission or Mission())
+        self.generic=deque(maxlen=LOG_LIMIT)
+        self.generic_total=0
+        self.first_fix=None
+        self.last_trusted=None
+        self.observations=None
+
+    @property
+    def reporting_valid_data(self):
+        return sum(bool(node.latest.sensor_mask) for node in self.nodes.values())
+
+    def close(self):
+        if self.observations:
+            self.observations.close()
+            self.observations=None
 
     def ingest(self, row):
         p = Packet.read(row)
         self.total += 1
+        self.failed += int(p.failed_crc)
         self.log.append((self.total, p))
+        if crc(row.get("phy_crc_ok")) is True:
+            self.generic.append((self.total,p))
+            self.generic_total+=1
         key = (p.fc, p.sf)
         count, last = self.channels.get(key, (0, p.t))
         self.channels[key] = count+1, max(last, p.t)
         if p.trusted:
+            self.book.hear(p)
+            self.last_trusted=max(p.t,self.last_trusted if self.last_trusted is not None else p.t)
+            if valid_fix(p) and (self.first_fix is None or p.t<self.first_fix.t):
+                self.first_fix=p
+            if self.observations is None:
+                self.observations=Observations()
+            self.observations.add(p)
             if p.node not in self.nodes:
                 self.nodes[p.node] = Node()
             self.nodes[p.node].hear(p)
@@ -131,10 +193,14 @@ class Fleet:
         numbers = {i: n for i, n in self.nodes.items() if filters.matches(n.latest)}
         def sort_value(i):
             n = numbers[i]
+            if key == "validity":
+                mask = n.latest.sensor_mask
+                return mask.bit_count() if mask is not None else None
             return {"id": i, "last": n.latest.t, "age": -n.latest.t, "count": n.count,
-                    "carrier": n.latest.fc, "sf": n.latest.sf,
+                    "carrier": n.latest.fc, "sf": n.latest.sf, "level":number(n.latest.row.get("preamble_power_dbfs")),
+                    "counter": n.latest.counter, "rssi": n.latest.rssi, "snr": n.latest.snr,
                     "soc": n.power.data["state_of_charge_percent"] if n.power else None}[key]
-        # Unknown SoC stays at the bottom in either direction. ID breaks ties.
+        # Missing readings stay at the bottom in either direction. ID breaks ties.
         ordered = sorted(numbers)
         known = [i for i in ordered if sort_value(i) is not None]
         return sorted(known, key=sort_value, reverse=reverse) + [i for i in ordered if sort_value(i) is None]
@@ -149,7 +215,7 @@ class JournalCursor:
         size = min(limit, committed-self.count)
         if size <= 0:
             return []
-        with path.open(encoding="utf-8", newline="") as stream:
+        with path.open(encoding="utf-8-sig", newline="") as stream:
             stream.seek(self.offset)
             rows = csv.DictReader(iter(stream.readline, ""), fieldnames=self.fields)
             batch = list(islice(rows, size))
@@ -164,20 +230,21 @@ FLEET_FIELDS = ["packets_received", "last_valid_position_capture_s", "last_valid
                 "last_available_soc_percent"]
 
 
-def export_csv(journal, count, destination, kind="all", filters=Filters()):
+def export_csv(journal, count, destination, kind="all", filters=Filters(),context=None):
     """Stream one committed prefix. An export can safely run alongside live capture."""
-    if kind not in ("all", "filtered", "fleet"):
+    if kind not in ("all", "filtered", "fleet","selected","generic","sic"):
         raise ValueError("Unknown export format")
     destination = Path(destination)
     if destination.suffix.lower() != ".csv":
         raise ValueError("Choose a .csv filename.")
-    protected={"packets.csv", "packets_primary.csv", "packets_residual.csv", "matches.csv"}
-    if destination.name.casefold() in protected and (destination.parent/"summary.json").is_file():
+    protected={"packets.csv", "packets_primary.csv", "packets_residual.csv", "matches.csv","sic_only.csv"}
+    if destination.resolve()==journal.resolve() or (destination.name.casefold() in protected and (destination.parent/"summary.json").is_file()):
         raise ValueError("Choose an export filename different from a receiver journal.")
     destination.parent.mkdir(parents=True, exist_ok=True)
-    cols = [*FIELDS, *ENGINEERING]
+    cols = [*PACKET_FIELDS, *ENGINEERING]
     if kind == "fleet":
         cols += FLEET_FIELDS
+    cols += TIMING_FIELDS
     written = 0
     tmp = None
     try:
@@ -191,13 +258,19 @@ def export_csv(journal, count, destination, kind="all", filters=Filters()):
             read = 0
             for row in islice(csv.DictReader(src), count):
                 read += 1
+                if context:
+                    for key in ("run_id","run_name","timestamp_source"):
+                        if not row.get(key):
+                            row[key]=context.get(key)
                 p = Packet.read(row)
                 if kind == "fleet":
                     if p.trusted:
                         if p.node not in nodes:
                             nodes[p.node] = Node()
                         nodes[p.node].hear(p)
-                elif kind == "all" or filters.matches(p):
+                elif (kind=="all" or (filters.matches(p) and
+                    (kind=="filtered" or kind=="generic" and crc(row.get("phy_crc_ok")) is True or
+                     kind=="selected" and p.trusted or kind=="sic" and crc(row.get("phy_crc_ok")) is True and row["pass_name"]=="sic"))):
                     writer.writerow({**row, **engineering(p.data)})
                     written += 1
             if read != count:

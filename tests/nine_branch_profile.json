@@ -1,0 +1,17 @@
+{
+  "center_hz": 915000000,
+  "sample_rate_hz": 1000000,
+  "carriers_hz": [914875000, 915000000, 915125000],
+  "monitor_only_hz": [915000000],
+  "spreading_factors": [10, 11, 12],
+  "bandwidth_hz": 125000,
+  "sync_word": "0x12",
+  "explicit_header": true,
+  "coding_rate_denominator": 7,
+  "phy_crc": true,
+  "preamble_symbols": 8,
+  "ldro": "auto",
+  "invert_iq": false,
+  "implicit_length": 55,
+  "max_cfo_hz": 18000
+}

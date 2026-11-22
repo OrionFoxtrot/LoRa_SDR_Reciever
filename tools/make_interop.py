@@ -15,7 +15,8 @@ def main():
     parser.add_argument("--python", required=True, type=Path, help="radioconda python.exe")
     parser.add_argument("--out", type=Path, default=ROOT/"examples"/"epfl_bench.iq")
     args = parser.parse_args()
-    profile = read_profile()
+    from fixtures import NINE_BRANCH_PROFILE
+    profile = read_profile(NINE_BRANCH_PROFILE)
     a,b = profile.fleet_carriers_hz
     with tempfile.TemporaryDirectory() as tmp:
         env = os.environ.copy()

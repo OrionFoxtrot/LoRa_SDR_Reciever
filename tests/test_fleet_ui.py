@@ -1,6 +1,8 @@
 import binascii
 import csv
+from contextlib import redirect_stdout
 import gc
+import io
 import json
 from pathlib import Path
 import struct
@@ -14,8 +16,10 @@ from unittest.mock import patch
 import weakref
 
 from config import ROOT
-from fixtures import GOLD, payload
+from fixtures import NINE_BRANCH_PROFILE, Event, GOLD, generate, payload
 from fleet_view import Fleet, Filters, HISTORY_LIMIT, LOG_LIMIT, export_csv
+from front_end import FRONT_END_LABELS, FrontEndPreferences, preset
+from fleet import main as fleet_cli
 from operator_gui import ReceiverWindow
 from reports import telemetry, write_packets
 from run import live
@@ -80,7 +84,9 @@ class OperatorWorkflow(unittest.TestCase):
         self.fixture=ROOT/"examples/epfl_bench.iq"
         self.root=tk.Tk()
         self.root.withdraw()
-        self.ui=ReceiverWindow(self.root,"Replay",str(self.fixture))
+        self.preferences = FrontEndPreferences(self.folder/"settings.sqlite3")
+        self.ui=ReceiverWindow(self.root,"Replay",str(self.fixture),front_preferences=self.preferences)
+        self.ui.setup.path.set(str(NINE_BRANCH_PROFILE))
         self.ui.setup.output.set(str(self.folder/"runs"))
         self.addCleanup(self.dispose)
 
@@ -91,11 +97,68 @@ class OperatorWorkflow(unittest.TestCase):
             time.sleep(.015)
         self.assertTrue(condition(),self.ui.detail.cget("text"))
 
+    def test_rf_panel_shows_per_branch_suspect_packets(self):
+        panel = self.ui.rf_panel
+        # The operator window stays withdrawn throughout this test.
+        with patch.object(panel, "winfo_ismapped", return_value=True):
+            panel.update_data({"branches": {"915000000/SF10": {"suspect_packets": 2},
+                                             "915000000/SF12": {"suspect_packets": 0}}})
+            self.assertEqual(panel.tree.set("915000000/SF10","suspect_packets"),"2")
+            self.assertEqual(panel.tree.set("915000000/SF12","suspect_packets"),"0")
+            panel.update_data({"branches": {"915000000/SF10": {}}})
+            self.assertEqual(panel.tree.set("915000000/SF10","suspect_packets"),"—")
+
     def dispose(self):
         if self.ui.worker or self.ui.job:
             self.ui.finish()
             self.pump(lambda:not self.ui.worker and not self.ui.job)
         self.ui.close()
+
+    def select_profile(self, index):
+        box = self.ui.monitor_box
+        box.current(index)
+        box.event_generate("<<ComboboxSelected>>")
+
+    def test_front_end_selection_persistence_cli_and_gain_reminder(self):
+        u,setup = self.ui,self.ui.setup
+        u.mode.set("Live RTL-SDR")
+        self.preferences.save("lana",preset("lana"),received=True)
+        u.auto_check.invoke()
+        expected = (("lana","Nooelec LaNA",20.,"USB"),("lana-wb","Nooelec LaNA WB",19.,"USB"),
+                    ("none","None",0.,"None"))
+        for key,model,gain,power in expected:
+            setup.front_picker.set(FRONT_END_LABELS[key])
+            setup.front_picker.event_generate("<<ComboboxSelected>>")
+            self.assertTrue(all(e.instate(["readonly"]) for e in setup.front_entries.values()))
+            meta = setup.front_end()
+            self.assertEqual(meta,dict(lna_model=model,nominal_gain_db=gain,power_source=power,filter="None",
+                                       usb_supply=None if key=="none" else "Unspecified"))
+            self.assertEqual(u.health["Front end"].cget("text"),"Antenna direct" if key=="none" else model)
+            self.assertEqual(bool(u.gain_notice.winfo_manager()),key!="lana")
+            setup.done()
+            self.assertEqual(FrontEndPreferences(self.preferences.path).selected(),(key,meta))
+            with patch("run.live") as call, patch("fleet.FrontEndPreferences",return_value=self.preferences), \
+                    patch("fleet.signal.signal"),redirect_stdout(io.StringIO()):
+                fleet_cli(["live","--front-end",key])
+                self.assertEqual(call.call_args.kwargs["front_end"],meta)
+        self.assertEqual(self.preferences.read("last_run"),preset("lana"))
+        u.auto_check.invoke()
+        self.assertFalse(u.gain_notice.winfo_manager())
+        setup.front_picker.set("Custom")
+        setup.front_picker.event_generate("<<ComboboxSelected>>")
+        self.assertTrue(all(e.instate(["!readonly","!disabled"]) for e in setup.front_entries.values()))
+        for k,v in dict(lna_model="Bench LNA",nominal_gain_db="14.5",power_source="USB",
+                        filter="915 MHz",usb_supply="battery bank").items():
+            setup.front_vars[k].set(v)
+        setup.done()
+        self.assertEqual(FrontEndPreferences(self.preferences.path).selected(),("custom",setup.front_end()))
+        with patch("run.live") as call, patch("fleet.FrontEndPreferences",return_value=self.preferences), \
+                patch("fleet.signal.signal"),redirect_stdout(io.StringIO()):
+            fleet_cli(["live","--front-end","lana-wb","--lna-gain-db","18.5","--rf-filter","915 MHz"])
+            self.assertEqual(call.call_args.kwargs["front_end"],
+                             dict(preset("lana-wb"), nominal_gain_db=18.5, filter="915 MHz"))
+        u.mode.set("IQ replay")
+        self.assertEqual(u.health["Front end"].cget("text"),"Front end not recorded")
 
     def test_replay_selection_exports_and_new_run(self):
         u=self.ui
@@ -106,7 +169,7 @@ class OperatorWorkflow(unittest.TestCase):
         self.assertIsNotNone(u.worker)
         p.fleet.selection_set("2")
         p.select()
-        p.sort_by("last")
+        p.sort_by("age")
         first_count=u.model.total
         p.clear_log()
         self.assertEqual(p.log.get_children(),())
@@ -214,29 +277,160 @@ class OperatorWorkflow(unittest.TestCase):
                 if key==4:
                     self.db=value/10
             def recv(self,n):
-                pattern=bytes((0,0,255,255) if self.db>1 else (123,123,131,131))
+                # A transmitter starts during the two-second check, after a quiet scan.
+                burst=n==4_000_000 and self.db>=7.7
+                pattern=bytes((0,0,255,255) if burst else (123,123,131,131))
                 return (pattern*(n//4+1))[:n]
         u=self.ui
         u.mode.set("Live RTL-SDR")
-        u.setup.carriers[914875000].set(False)
-        u.setup.carriers[915125000].set(False)
+        self.select_profile(0)
         u.setup.sfs[10].set(False)
         u.setup.refresh()
-        self.assertTrue(u.setup.auto.get())
-        self.assertIn("disabled",u.setup.gain_input.state())
+        for control in (u.record_check, u.auto_check, u.gain_input, u.monitor_box):
+            self.assertEqual(control.winfo_toplevel(), self.root)
+        self.assertTrue(u.record_check.instate(["selected", "!disabled"]))
+        self.assertTrue(u.auto_check.instate(["selected", "!disabled"]))
+        self.assertTrue(u.gain_input.instate(["disabled"]))
         def finite(*args,**kwargs):
             return live(*args,seconds=.1,evidence="synthetic gain-dependent IQ",**kwargs)
         with patch("run.Radio",BenchRadio),patch("operator_gui.live",finite):
-            u.start()
+            u.start_button.invoke()
+            for control in (u.record_check, u.auto_check, u.gain_input, u.monitor_box):
+                self.assertTrue(control.instate(["disabled"]))
             self.pump(lambda:u.phase in ("saved","error"))
         self.assertEqual(u.phase,"saved",u.detail.cget("text"))
         summary=json.loads((u.path/"summary.json").read_text())
         self.assertEqual(set(summary["branches"]),{"915000000/SF11","915000000/SF12"})
-        self.assertLessEqual(summary["gain_db"],1.)
-        self.assertGreater(len(summary["gain_setup"]["observations"]),1)
+        scan=summary["gain_setup"]
+        checks=scan["headroom_checks"]
+        self.assertEqual(len(checks),2)
+        self.assertGreater(checks[0]["clip_fraction"],0)
+        self.assertEqual(checks[-1]["clip_fraction"],0)
+        self.assertLess(checks[-1]["gain_db"],checks[0]["gain_db"])
+        self.assertEqual(checks[-1]["gain_db"],0)
+        self.assertIn("minimum tuner gain",scan["warning"])
+        self.assertEqual(summary["gain_db"],checks[-1]["gain_db"])
+        sidecar=json.loads((u.path/"capture.iq.json").read_text())
+        self.assertEqual(sidecar["gain_db"],summary["gain_db"])
+        self.assertEqual(sidecar["front_end"],summary["front_end"])
+        self.assertEqual(sidecar["front_end"]["power_source"],"USB")
         self.assertEqual((u.path/"capture.iq").stat().st_size,200000)
         self.assertEqual(summary["recording"]["queued_bytes"],0)
         self.assertEqual(u.recording.cget("text"),"IQ saved")
+
+        u.new_button.invoke()
+        u.record_check.invoke()
+        self.assertEqual(u.recording.cget("text"), "Off")
+        u.auto_check.invoke()
+        self.assertTrue(u.gain_input.instate(["!disabled"]))
+        u.gain_input.delete(0, "end")
+        u.gain_input.insert(0, "nan")
+        with patch("operator_gui.messagebox.showerror") as error:
+            u.start_button.invoke()
+            error.assert_called_once()
+        self.assertEqual(u.phase, "ready")
+        u.gain_input.delete(0, "end")
+        u.gain_input.insert(0, "28.0")
+        u.auto_check.invoke()
+        u.auto_check.invoke()
+        self.assertEqual(u.gain_input.get(), "28.0")
+        with patch("run.Radio", BenchRadio), patch("operator_gui.live", finite):
+            u.start_button.invoke()
+            self.pump(lambda: u.phase in ("saved", "error"))
+        self.assertEqual(u.phase, "saved", u.detail.cget("text"))
+        manual = json.loads((u.path/"summary.json").read_text())
+        self.assertFalse(manual["auto_gain_requested"])
+        self.assertEqual(manual["gain_db"], 28)
+        self.assertIsNone(manual["recording"])
+        self.assertTrue((u.path/"packets.csv").is_file())
+        self.assertFalse((u.path/"capture.iq").exists())
+        u.new_button.invoke()
+        self.assertTrue(u.gain_input.instate(["!disabled"]))
+        self.assertTrue(u.record_check.instate(["!selected"]))
+
+    def test_monitor_presets_replay_all_twelve_branches(self):
+        u = self.ui
+        self.select_profile(1)
+        names = u.monitor_box.cget("values")
+        plans = ((915_000_000,), (914_875_000, 915_125_000),
+                 (914_700_000, 914_900_000, 915_100_000, 915_300_000))
+        sfs = (10, 11, 12)
+        self.assertEqual(tuple(names),("915 MHz only","Fleet A/B","Four-carrier","Custom"))
+        self.assertEqual(tuple(u.setup.carrier_picker.cget("values")),tuple(names))
+        self.assertEqual(u.monitor_box.current(), 1)
+        self.assertEqual(u.setup.selected().max_cfo_hz,18000)
+        for text in ("9999","30001"):
+            u.setup.max_cfo.set(text)
+            with self.assertRaises(ValueError):
+                u.setup.selected()
+        u.setup.max_cfo.set("28000")
+        self.assertEqual(u.setup.selected().max_cfo_hz,28000)
+        u.setup.max_cfo.set("18000")
+        self.assertFalse(u.live_controls.winfo_manager())
+        for i, carriers in enumerate(plans):
+            # Any per-run overrides must be cleared by the next preset selection.
+            u.setup.sfs[7].set(True)
+            u.setup.sfs[12].set(False)
+            u.setup.extra.set("914.95")
+            self.assertEqual(u.monitor_box.get(), "Custom")
+            self.select_profile(i)
+            p = u.setup.selected()
+            self.assertEqual((p.center_hz, p.carriers_hz, p.spreading_factors), (915_000_000, carriers, sfs))
+            self.assertEqual(set(u.panels.cells), {(fc, sf) for fc in carriers for sf in sfs})
+            self.assertEqual(u.monitor_box.current(), i)
+            u.setup.save_carriers()
+            self.assertEqual(self.preferences.carrier_profile(p).carriers_hz,carriers)
+
+        # All twelve DeSCENT packets start together in a single 1 MS/s CU8 capture.
+        events = [Event(.124723, fc, sf, payload(1+3*i+j, 17), .10, (-2345, 1713, 423)[j],
+                        (32, -45, 38)[j], j+.3*i)
+                  for i, fc in enumerate(plans[2]) for j, sf in enumerate(sfs)]
+        iq = self.folder / "four_carrier.iq"
+        generate(iq, p, events, 3.51)
+        u.setup.capture.set(str(iq))
+        u.setup.paced.set(False)
+        u.start_button.invoke()
+        self.assertTrue(u.monitor_box.instate(["disabled"]))
+        self.pump(lambda: u.phase in ("saved", "error"))
+        self.assertEqual(u.phase, "saved", u.detail.cget("text"))
+        rows = read_rows(u.path / "packets.csv")
+        self.assertEqual(len(rows), 12)
+        self.assertEqual(len(u.model.nodes), 12)
+        self.assertEqual({(int(r["carrier_hz"]), int(r["sf"]), r["payload_hex"]) for r in rows},
+                         {(e.carrier, e.sf, e.data.hex()) for e in events})
+        self.assertTrue(all(r["phy_crc_ok"] == r["application_crc_ok"] == "True" for r in rows))
+
+        saved = u.path
+        u.new_button.invoke()
+        self.assertEqual(u.monitor_box.current(), 2)
+        self.select_profile(0)
+        u.field.open_saved(saved)
+        self.pump(lambda: u.phase == "saved")
+        self.assertEqual(u.monitor_box.current(), 2)
+        self.assertTrue(u.monitor_box.instate(["disabled"]))
+        u.new_button.invoke()
+        self.assertEqual(u.monitor_box.current(), 0)
+        self.assertTrue(u.monitor_box.instate(["readonly", "!disabled"]))
+
+    def test_monitor_presets_respect_recorded_tuning(self):
+        u = self.ui
+        iq = self.folder / "retuned.iq"
+        iq.write_bytes(bytes([127, 128]))
+        Path(str(iq)+".json").write_text('{"center_hz":915200000}')
+        u.setup.capture.set(str(iq))
+        self.select_profile(2)
+        self.assertEqual(u.setup.tuner.get(), "915.200")
+        with self.assertRaisesRegex(ValueError, "exceeds the capture"):
+            u.setup.selected()
+        with patch("operator_gui.messagebox.showerror") as error:
+            u.start_button.invoke()
+            error.assert_called_once()
+        self.assertIsNone(u.worker)
+        self.select_profile(0)
+        self.assertEqual(u.setup.selected().center_hz, 915_200_000)
+        u.mode.set("Live RTL-SDR")
+        self.assertEqual(u.setup.selected().center_hz, 915_000_000)
+        self.assertEqual(u.live_controls.winfo_manager(), "pack")
 
     def test_detail_retains_a_valid_position_and_log_clear_is_local(self):
         u=self.ui
@@ -247,7 +441,7 @@ class OperatorWorkflow(unittest.TestCase):
         no_fix.extend(binascii.crc_hqx(no_fix,0xffff).to_bytes(2,"little"))
         u.model.ingest(row(no_fix,9))
         u.panels.render(u.model,12)
-        self.assertEqual(u.panels.fix.cget("text"),"No fix   ·   last valid position 00:09.5 ago")
+        self.assertEqual(u.panels.fix.cget("text"),"No fix   ·   last valid report 00:09.5 ago")
         self.assertIn("42.4351455",u.panels.lines["coords"].cget("text"))
         self.assertEqual(u.panels.lines["soc"].cget("text"),"99")
         u.panels.pause.set(True)

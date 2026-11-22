@@ -3,9 +3,24 @@ import tkinter as tk
 from tkinter import ttk
 
 from fleet_view import Filters, LOG_LIMIT, STALE_SECONDS, crc
-from operator_theme import PANEL, RED, mhz_label
+from operator_theme import INK, MUTED, PANEL, RED, TEAL, mhz_label
+from field_plots import FieldPlots
+from mission import fix_time, valid_fix
 
 DASH = "—"
+# Flight validity bits 0–6, in the same left-to-right order as the row bar.
+SENSORS = (("A", "Accel"), ("G", "Gyro"), ("M", "Mag"), ("Q", "Quat"),
+           ("P", "GPS"), ("C", "SoC"), ("E", "Env"))
+
+
+def validity_bar(mask):
+    if mask is None:
+        return DASH
+    return f"{mask.bit_count()}/{len(SENSORS)}"
+
+
+def reading(value, places=1):
+    return DASH if value is None else f"{value:.{places}f}"
 
 
 def clock_text(seconds, tenths=False):
@@ -23,7 +38,7 @@ def crc_text(value):
 def table(parent, cols, height=5, command=None):
     tree=ttk.Treeview(parent, columns=[c[0] for c in cols],show="headings",height=height,selectmode="browse")
     for key,label,width in cols:
-        align="e" if key in ("last","age","count","carrier","soc","t","time","seq","n") else "center"
+        align="e" if key in ("last","age","count","counter","carrier","soc","rssi","snr","t","time","seq","n") else "center"
         tree.heading(key,text=label,anchor=align,
                      command=(lambda k=key:command(k)) if command else "")
         tree.column(key,width=width,minwidth=min(40,width),anchor=align)
@@ -38,16 +53,18 @@ def table(parent, cols, height=5, command=None):
 
 
 class FleetPanels:
-    columns=(("id","ChipSat ID",82),("last","Last heard",88),("age","Age (s)",62),
-             ("count","Packets",64),("carrier","Carrier (MHz)",99),("sf","SF",44),("soc","SoC (%)",68))
+    columns=(("id","CSID",54),("age","Last Heard",100),("carrier","Carrier (MHz)",93),
+             ("sf","SF",36),("counter","Counter",66),("rssi","RSSI (dBFS)",88),
+             ("snr","SNR (dB)",72),("soc","SoC (%)",61),("validity","Data validity",158))
 
-    def __init__(self, parent, mono, score):
+    def __init__(self, parent, mono, score, log_host):
         self.mono=mono
         self.key,self.reverse="id",False
         self.selected_id=None
         self.log_floor=0
         self.carriers=()
         self.profile_key=None
+        self.gaps=[]
         self.model=None
         self.now=0.
         self.id_filter,self.fc_filter,self.sf_filter=tk.StringVar(),tk.StringVar(value="All"),tk.StringVar(value="All")
@@ -56,12 +73,10 @@ class FleetPanels:
         left.grid(row=0,column=0,sticky="nsew",padx=(0,10))
         left.rowconfigure(0,weight=1)
         left.columnconfigure(0,weight=1)
-        book=ttk.Notebook(left)
-        book.grid(row=0,column=0,sticky="nsew")
-        fleet=ttk.Frame(book,padding=(11,7,11,8))
-        log=ttk.Frame(book,padding=(11,7,11,8))
-        book.add(fleet,text="Fleet")
-        book.add(log,text="Packet log")
+        fleet=ttk.Frame(left,padding=(11,7,11,8),style="Card.TFrame")
+        fleet.grid(row=0,column=0,sticky="nsew")
+        log=ttk.Frame(log_host,padding=(11,7,11,8))
+        log.pack(fill="both",expand=True)
         for w in (fleet,log):
             w.columnconfigure(0,weight=1)
         fleet.rowconfigure(2,weight=1)
@@ -72,7 +87,7 @@ class FleetPanels:
         self.totals.pack(side="right")
         filters=ttk.Frame(fleet)
         filters.grid(row=1,column=0,sticky="ew",pady=(5,7))
-        ttk.Label(filters,text="ID",style="Small.TLabel").pack(side="left")
+        ttk.Label(filters,text="CSID",style="Small.TLabel").pack(side="left")
         self.search=ttk.Entry(filters,textvariable=self.id_filter,width=7)
         self.search.pack(side="left",padx=(4,12))
         self.fc_box=self._combo(filters,"Carrier (MHz)",self.fc_filter,10)
@@ -81,8 +96,30 @@ class FleetPanels:
         frame=ttk.Frame(fleet)
         frame.grid(row=2,column=0,sticky="nsew")
         self.fleet=table(frame,self.columns,5,self.sort_by)
+        self.fleet.column("validity", minwidth=150)
         self.fleet.bind("<<TreeviewSelect>>",self.select)
+        # Tk 8.6 supports native images only in the first tree column.
+        # Cover the validity cells of visible rows with one clipped drawing surface.
+        self.validity_tiles = tk.Canvas(self.fleet, highlightthickness=0, borderwidth=0,
+                                        background=PANEL, takefocus=False)
+        self.root = self.fleet.winfo_toplevel()
+        self.tile_redraw = None
+        self.tile_state = None
+        scrollbar = next(w for w in frame.winfo_children() if isinstance(w, ttk.Scrollbar))
+        def scrolled(first,last):
+            scrollbar.set(first,last)
+            self.queue_tiles()
+        self.fleet.configure(yscrollcommand=scrolled)
+        self.fleet.bind("<Map>", self.queue_tiles, add="+")
+        self.fleet.bind("<Configure>", self.queue_tiles, add="+")
+        self.fleet.bind("<B1-Motion>", self.queue_tiles, add="+")
+        self.fleet.bind("<ButtonRelease-1>", self.queue_tiles, add="+")
+        self.fleet.bind("<Destroy>", self.cancel_tiles, add="+")
+        self.validity_tiles.bind("<Button-1>", self.choose_tile_row)
+        self.validity_tiles.bind("<MouseWheel>", lambda e:self.fleet.event_generate("<MouseWheel>",delta=e.delta))
         self.empty=ttk.Label(frame,text="Waiting for a valid ChipSat packet",style="Small.TLabel")
+        ttk.Label(fleet,text="■ Valid   □ Unavailable     ·     "+"   ".join(f"{k} {v}" for k,v in SENSORS),
+                  style="Small.TLabel").grid(row=3,column=0,sticky="w",pady=(4,0))
         log.rowconfigure(1,weight=1)
         tools=ttk.Frame(log)
         tools.grid(row=0,column=0,sticky="ew",pady=(0,5))
@@ -91,6 +128,8 @@ class FleetPanels:
         ttk.Button(tools,text="Clear view",command=self.clear_log).pack(side="left")
         self.score_button=ttk.Button(tools,text="Score with TX log…",command=score)
         self.score_button.pack(side="right")
+        self.log_fc=self._combo(tools,"Carrier (MHz)",self.fc_filter,10)
+        self.log_sf=self._combo(tools,"SF",self.sf_filter,5)
         frame=ttk.Frame(log)
         frame.grid(row=1,column=0,sticky="nsew")
         self.log=table(frame,(("n","Row",44),("t","Run time (s)",94),("id","ChipSat",58),("fc","MHz",80),
@@ -150,7 +189,8 @@ class FleetPanels:
         self.measure.bind("<Configure>",lambda _:canvas.configure(scrollregion=canvas.bbox("all")))
         history=ttk.Frame(self.detail_book,padding=(3,6))
         self.detail_book.add(tele,text="Telemetry")
-        self.detail_book.add(history,text="History & payload")
+        self.detail_book.add(history,text="Packet history")
+        self.plots=FieldPlots(self.detail_book,history)
         self.lines={}
         # The motion vectors keep the flight parser's XYZ and IJKR order.
         self._section(self.measure,0,"Position")
@@ -177,7 +217,10 @@ class FleetPanels:
             return "break"
         for child in (canvas,self.measure,*self.measure.winfo_children()):
             child.bind("<MouseWheel>",wheel)
-        ttk.Label(history,text="Latest raw payload (hex)",style="Field.TLabel").pack(anchor="w")
+        rawbar=ttk.Frame(history)
+        rawbar.pack(fill="x")
+        ttk.Label(rawbar,text="Latest raw payload (hex)",style="Field.TLabel").pack(side="left")
+        ttk.Button(rawbar,text="Copy hex",command=self.copy_latest).pack(side="right")
         self.hex_text=tk.Text(history,height=4,wrap="char",font=(self.mono,10),background="#f2f5f5",
                               foreground="#243c46",relief="flat",padx=7,pady=4,width=10)
         self.hex_text.pack(fill="x",pady=(4,10))
@@ -210,6 +253,8 @@ class FleetPanels:
         self.carriers,sfs=key
         self.fc_box.configure(values=("All",*(mhz_label(fc) for fc in self.carriers)))
         self.sf_box.configure(values=("All",*map(str,sfs)))
+        self.log_fc.configure(values=self.fc_box.cget("values"))
+        self.log_sf.configure(values=self.sf_box.cget("values"))
         for widget in self.channel_grid.winfo_children():
             widget.destroy()
         self.cells={}
@@ -224,7 +269,19 @@ class FleetPanels:
         for i,fc in enumerate(self.carriers,1):
             cell(i,0,mhz_label(fc),"GridHead.TLabel")
             for j,sf in enumerate(sfs,1):
-                self.cells[fc,sf]=cell(i,j,f"0  /  {DASH}","GridIdle.TLabel")
+                w=self.cells[fc,sf]=cell(i,j,f"0  /  {DASH}","GridIdle.TLabel")
+                w.configure(cursor="hand2",takefocus=True)
+                def choose(_,fc=fc,sf=sf):
+                    self.fc_filter.set(mhz_label(fc))
+                    self.sf_filter.set(str(sf))
+                w.bind("<Button-1>",choose)
+                w.bind("<Return>",choose)
+
+    def copy_latest(self):
+        text=self.hex_text.get("1.0","end-1c")
+        if text and text!=DASH:
+            self.hex_text.clipboard_clear()
+            self.hex_text.clipboard_append(text)
 
     def filters(self):
         freq=next((fc for fc in self.carriers if mhz_label(fc)==self.fc_filter.get()),None)
@@ -241,7 +298,7 @@ class FleetPanels:
             self.render(self.model,self.now)
 
     def sort_by(self,key):
-        self.reverse=not self.reverse if self.key==key else key in ("last","count","soc")
+        self.reverse=not self.reverse if self.key==key else key in ("soc","validity","rssi","snr","counter")
         self.key=key
         self.sort_heading()
         self.filter_changed()
@@ -265,6 +322,8 @@ class FleetPanels:
                 self.log.clipboard_append("\t".join(map(str,values)))
 
     def reset(self):
+        self.plots.reset()
+        self.gaps=[]
         self.model=None
         self.selected_id=None
         self.log_floor=0
@@ -282,12 +341,81 @@ class FleetPanels:
         if selection and self.model and int(selection[0]) in self.model.nodes:
             self.selected_id=int(selection[0])
             self.show_details(self.model.nodes[self.selected_id])
+        self.queue_tiles()
+
+    def choose_tile_row(self,event):
+        row = self.fleet.identify_row(event.y + self.validity_tiles.winfo_y())
+        if row:
+            self.fleet.selection_set(row)
+            self.fleet.focus(row)
+            self.fleet.focus_set()
+
+    def queue_tiles(self,*_):
+        if self.tile_redraw is None:
+            self.tile_redraw = self.root.after_idle(self.draw_tiles)
+
+    def cancel_tiles(self,*_):
+        if self.tile_redraw is not None:
+            self.root.after_cancel(self.tile_redraw)
+            self.tile_redraw = None
+
+    def draw_tiles(self):
+        self.tile_redraw = None
+        tree, canvas = self.fleet, self.validity_tiles
+        children = tree.get_children()
+        if not self.model or not children or not tree.winfo_ismapped():
+            canvas.place_forget()
+            self.tile_state = None
+            return
+        rows = []
+        selected = tree.selection()
+        first, last = tree.yview()
+        count = len(children)
+        for index in range(max(0,int(first*count)-1), min(count,int(last*count)+2)):
+            row = children[index]
+            box = tree.bbox(row, "validity")
+            if box:
+                x,y,width,height = box
+                rows.append((row, y, self.model.nodes[int(row)].latest.sensor_mask,
+                             row in selected, bool(index % 2)))
+        if not rows:
+            canvas.place_forget()
+            self.tile_state = None
+            return
+        top = rows[0][1]
+        bottom = min(tree.winfo_height()-1, rows[-1][1]+height)
+        state = (x, width, height, bottom, rows)
+        if state == self.tile_state:
+            return
+        self.tile_state = state
+        canvas.place(x=x, y=top, width=width, height=bottom-top)
+        canvas.delete("all")
+        size = min(height-4, (width-36)//len(SENSORS)-2)
+        step = size+2
+        left = max(2, (width-(step*len(SENSORS)+28))//2)
+        for _, y, mask, active, alternate in rows:
+            y -= top
+            bg = "#d6ece6" if active else "#f5f8f8" if alternate else PANEL
+            canvas.create_rectangle(0,y,width,y+height,fill=bg,outline="")
+            mid = y+height/2
+            if mask is None:
+                canvas.create_text(width/2,mid,text=DASH,fill=MUTED)
+                continue
+            for bit,(letter,_) in enumerate(SENSORS):
+                valid = mask & (1 << bit)
+                a = left+bit*step
+                canvas.create_rectangle(a,mid-size/2,a+size,mid+size/2,tags="tile",
+                                        fill=TEAL if valid else PANEL,outline=TEAL if valid else "#8da2a7")
+                canvas.create_text(a+size/2,mid,text=letter,font=(self.mono,-max(10,size-4),"bold"),
+                                   fill=PANEL if valid else MUTED,tags="letter")
+            canvas.create_text(left+step*len(SENSORS)+3,mid,text=validity_bar(mask),
+                               anchor="w",font=(self.mono,9),fill=INK)
 
     def render(self,model,now):
         self.model,self.now=model,now
         filters=self.filters()
         ids=model.visible(filters,self.key,self.reverse)
-        self.totals.configure(text=f"{len(ids)} of {len(model.nodes)} ChipSats   ·   {model.total:,} packets")
+        self.totals.configure(text=f"{len(ids)} {'row' if len(ids)==1 else 'rows'} shown")
         present=set(self.fleet.get_children())
         wanted=set(map(str,ids))
         if present-wanted:
@@ -297,7 +425,8 @@ class FleetPanels:
             p=n.latest
             age=max(0,now-p.t)
             soc=f"{n.power.data['state_of_charge_percent']:g}" if n.power else DASH
-            values=(f"{i:03}",clock_text(p.t,True),f"{age:.1f}",n.count,mhz_label(p.fc),p.sf,soc)
+            values=(f"{i:03}",f"{age:.1f} s ago",mhz_label(p.fc),p.sf,reading(p.counter,0),
+                    reading(p.rssi),reading(p.snr),soc,validity_bar(p.sensor_mask))
             tags=["alternate"] if index%2 else []
             if age>=STALE_SECONDS:
                 tags.append("stale")
@@ -318,6 +447,7 @@ class FleetPanels:
             self.empty.configure(text="No ChipSats match these filters" if model.nodes else "Waiting for a valid ChipSat packet")
             self.empty.place(relx=.5,rely=.55,anchor="center")
         self.show_details(model.nodes.get(selected))
+        self.queue_tiles()
         for key,cell in self.cells.items():
             count,last=model.channels.get(key,(0,None))
             stamp=clock_text(last,True) if last is not None else DASH
@@ -332,8 +462,8 @@ class FleetPanels:
             if str(i) not in old:
                 self.log.insert("",index,iid=str(i),values=(i,f"{p.t:.3f}",p.node if p.node is not None else DASH,
                     mhz_label(p.fc),p.sf,crc_text(p.row["phy_crc_ok"]),crc_text(p.row["application_crc_ok"]),
-                    p.row.get("packet_counter") or (0 if p.row.get("packet_counter")==0 else DASH)),
-                    tags=("error",) if False in (crc(p.row["phy_crc_ok"]),crc(p.row["application_crc_ok"])) else ())
+                    reading(p.counter,0)),
+                    tags=("error",) if p.failed_crc else ())
                 added=True
             elif self.log.index(str(i))!=index:
                 self.log.move(str(i),"",index)
@@ -344,14 +474,15 @@ class FleetPanels:
     def show_details(self,n):
         last=n.latest if n else None
         pos=n.position if n else None
-        fixed=bool(last and last.data.get("valid",{}).get("gps"))
-        fix_age=clock_text(self.now-pos.t,True) if pos else None
-        fix_text=(f"Valid fix   ·   age {fix_age}" if fixed else
-                  f"No fix   ·   last valid position {fix_age} ago" if pos else "No valid position")
+        fixed=bool(last and valid_fix(last))
+        fix_age=clock_text(self.now-fix_time(pos)[0],True) if pos else None
+        dated=pos and fix_time(pos)[1]
+        fix_text=(f"Valid fix   ·   {'fix' if dated else 'report'} age {fix_age}" if fixed else
+                  f"No fix   ·   last valid {'fix' if dated else 'report'} {fix_age} ago" if pos else "No valid position")
         if not n:
             fix_text=DASH
         if self.fix_key!=fix_text:
-            stale=last and (not fixed or (pos and self.now-pos.t>=STALE_SECONDS))
+            stale=last and (not fixed or (pos and self.now-fix_time(pos)[0]>=STALE_SECONDS))
             self.fix.configure(text=fix_text,style="Stale.TLabel" if stale else "Accent.TLabel")
             self.fix_key=fix_text
         identity=(id(last),n.count if n else None)
@@ -359,7 +490,8 @@ class FleetPanels:
             return
         self.detail_key=identity
         self.node_label.configure(text=f"ChipSat {last.node:03d}" if n else "No selection")
-        self.meta.configure(text=(f"Packet {last.row['packet_counter']}   ·   {mhz_label(last.fc)} MHz   ·   SF{last.sf}"
+        self.meta.configure(text=(f"Counter {reading(last.counter,0)}   ·   {mhz_label(last.fc)} MHz   ·   SF{last.sf}\n"
+                                  f"RSSI {reading(last.rssi)} dBFS   ·   SNR {reading(last.snr)} dB"
                                   if n else "Select a fleet row to inspect its telemetry"))
         vals={}
         if pos:
@@ -367,17 +499,17 @@ class FleetPanels:
             vals.update(coords=f"{d['latitude_deg']:.7f}, {d['longitude_deg']:.7f}",alt=f"{d['gps_altitude_msl_m']:.3f}")
         if last:
             d=last.data
-            valid=d["valid"]
-            if valid["state_of_charge"]:
+            valid=d.get("valid",{})
+            if valid.get("state_of_charge"):
                 vals["soc"]=f"{d['state_of_charge_percent']:g}"
-            if valid["environmental"]:
+            if valid.get("environmental"):
                 for key,src in (("temp","temperature_C"),("pressure","pressure_hPa"),("humidity","humidity_percent"),
                                 ("env_alt","environmental_altitude_m")):
                     vals[key]=f"{d[src]:.2f}"
             for key,group,src in (("acc","linear_acceleration","linear_acceleration_mps2"),
                                   ("gyro","gyroscope","gyroscope_deg_s"),("mag","magnetometer","magnetic_field_uT"),
                                   ("quat","quaternion","quaternion_ijkr")):
-                if valid[group]:
+                if valid.get(group):
                     vals[key]="  ".join(f"{v:.{3 if key=='quat' else 2}f}" for v in d[src])
         for key,label in self.lines.items():
             label.configure(text=vals.get(key,DASH))
@@ -388,11 +520,12 @@ class FleetPanels:
             self.charge.grid_remove()
         self.hex_text.configure(state="normal")
         self.hex_text.delete("1.0","end")
-        self.hex_text.insert("1.0",bytes.fromhex(last.row["payload_hex"]).hex(" ").upper() if last else DASH)
+        raw=last.row.get("payload_hex") if last else None
+        self.hex_text.insert("1.0",bytes.fromhex(raw).hex(" ").upper() if raw else DASH)
         self.hex_text.configure(state="disabled")
         self.history.delete(*self.history.get_children())
         if n:
             for p in n.history:
-                self.history.insert("","end",values=(f"{p.t:.3f}",p.row["packet_counter"],mhz_label(p.fc),p.sf,
+                self.history.insert("","end",values=(f"{p.t:.3f}",reading(p.counter,0),mhz_label(p.fc),p.sf,
                     crc_text(p.row["phy_crc_ok"]),crc_text(p.row["application_crc_ok"])))
 

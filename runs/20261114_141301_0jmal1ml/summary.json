@@ -1,0 +1,414 @@
+{
+  "mode": "live",
+  "evidence": "live hardware",
+  "run_id": "20261114_141301_0jmal1ml",
+  "run_name": "Bench run 4",
+  "profile": {
+    "center_hz": 915000000,
+    "sample_rate_hz": 1000000,
+    "carriers_hz": [
+      914875000,
+      915000000,
+      915125000
+    ],
+    "spreading_factors": [
+      10,
+      11,
+      12
+    ],
+    "bandwidth_hz": 125000,
+    "sync_word": 18,
+    "explicit_header": true,
+    "coding_rate_denominator": 7,
+    "phy_crc": true,
+    "preamble_symbols": 8,
+    "ldro": "auto",
+    "invert_iq": false,
+    "implicit_length": 55,
+    "max_cfo_hz": 18000,
+    "monitor_only_hz": [
+      915000000
+    ],
+    "ldro_by_sf": {
+      "10": false,
+      "11": true,
+      "12": true
+    }
+  },
+  "run_directory": "C:\\Users\\lohat\\Desktop\\DeSCENT_Comms\\LoRa_SDR_Reciever\\runs\\20261114_141301_0jmal1ml",
+  "started_utc": "2026-11-14T19:13:02.734312+00:00",
+  "decoder_version": "0.3.0",
+  "status": "stopped",
+  "branches": {
+    "914875000/SF10": {
+      "packets": 0,
+      "phy_pass": 0,
+      "app_pass": 0,
+      "syncs": 0
+    },
+    "914875000/SF11": {
+      "packets": 0,
+      "phy_pass": 0,
+      "app_pass": 0,
+      "syncs": 0
+    },
+    "914875000/SF12": {
+      "packets": 0,
+      "phy_pass": 0,
+      "app_pass": 0,
+      "syncs": 0
+    },
+    "915000000/SF10": {
+      "packets": 8,
+      "phy_pass": 7,
+      "app_pass": 7,
+      "syncs": 8
+    },
+    "915000000/SF11": {
+      "packets": 0,
+      "phy_pass": 0,
+      "app_pass": 0,
+      "syncs": 0
+    },
+    "915000000/SF12": {
+      "packets": 0,
+      "phy_pass": 0,
+      "app_pass": 0,
+      "syncs": 0
+    },
+    "915125000/SF10": {
+      "packets": 0,
+      "phy_pass": 0,
+      "app_pass": 0,
+      "syncs": 0
+    },
+    "915125000/SF11": {
+      "packets": 0,
+      "phy_pass": 0,
+      "app_pass": 0,
+      "syncs": 0
+    },
+    "915125000/SF12": {
+      "packets": 0,
+      "phy_pass": 0,
+      "app_pass": 0,
+      "syncs": 0
+    }
+  },
+  "false_decodes": null,
+  "duplicate_decodes": null,
+  "upstream_usb_dropped_samples": null,
+  "requested_gain_db": 10.0,
+  "auto_gain_requested": true,
+  "gain_setup": {
+    "gain_db": 49.6,
+    "level": {
+      "rms_lsb": 2.228397846221924,
+      "max_rms_lsb": 3.789665937423706,
+      "peak_lsb": 11.5,
+      "clip_fraction": 0.0
+    },
+    "observations": [
+      {
+        "gain_db": 8.7,
+        "rms_lsb": 0.4940700829029083,
+        "max_rms_lsb": 0.506925642490387,
+        "peak_lsb": 1.5,
+        "clip_fraction": 0.0
+      },
+      {
+        "gain_db": 28.0,
+        "rms_lsb": 0.6932658553123474,
+        "max_rms_lsb": 0.7885519862174988,
+        "peak_lsb": 2.5,
+        "clip_fraction": 0.0
+      },
+      {
+        "gain_db": 43.4,
+        "rms_lsb": 1.6926395893096924,
+        "max_rms_lsb": 2.0242769718170166,
+        "peak_lsb": 8.5,
+        "clip_fraction": 0.0
+      },
+      {
+        "gain_db": 49.6,
+        "rms_lsb": 2.222409963607788,
+        "max_rms_lsb": 2.8870654106140137,
+        "peak_lsb": 11.5,
+        "clip_fraction": 0.0
+      }
+    ],
+    "headroom_checks": [
+      {
+        "gain_db": 49.6,
+        "rms_lsb": 2.228397846221924,
+        "max_rms_lsb": 3.789665937423706,
+        "peak_lsb": 11.5,
+        "clip_fraction": 0.0
+      }
+    ],
+    "warning": null
+  },
+  "gain_db": 49.6,
+  "ppm": 0,
+  "device": 0,
+  "rtl0_header_hex": "52544c30000000050000001d",
+  "rtl_tcp_endpoint": "local child",
+  "capture_start_utc": "2026-11-14T19:13:09.772495+00:00",
+  "recording": {
+    "path": "C:\\Users\\lohat\\Desktop\\DeSCENT_Comms\\LoRa_SDR_Reciever\\runs\\20261114_141301_0jmal1ml\\capture.iq",
+    "bytes_written": 46661632,
+    "bytes_dropped": 0,
+    "sha256": "86cf6715d5e3cd572acc7bd45b8a384445eda7b1da27794f71c9dae1e7043078",
+    "gaps": 0,
+    "queued_bytes": 0,
+    "stopped_reason": null,
+    "error": null
+  },
+  "queue_highwater_blocks": 1,
+  "capture_sha256": "86cf6715d5e3cd572acc7bd45b8a384445eda7b1da27794f71c9dae1e7043078",
+  "trailing_unpaired_bytes": 0,
+  "processed_iq_sha256": "86cf6715d5e3cd572acc7bd45b8a384445eda7b1da27794f71c9dae1e7043078",
+  "error": null,
+  "capture_seconds": 23.330816,
+  "mission": {
+    "size": 100,
+    "period": 30.0,
+    "target": 80,
+    "epoch": null,
+    "alignment": "capture-aligned",
+    "station": null,
+    "roster": {}
+  },
+  "mission_periods": [
+    {
+      "index": 0,
+      "start_s": 0.0,
+      "end_s": 30.0,
+      "heard": 2,
+      "gps": 2,
+      "final": true,
+      "partial": true,
+      "gap": false,
+      "met": false,
+      "state": "Partial period"
+    }
+  ],
+  "gap_ranges_s": [],
+  "processed_samples": 23330816,
+  "dropped_samples": 0,
+  "dropped_blocks": 0,
+  "processing_seconds": 4.0110123003833,
+  "processing_x_realtime": 5.816690215028875,
+  "elapsed_seconds": 30.39357520005433,
+  "elapsed_x_realtime": 0.767623283751044,
+  "clipped_samples": 2368,
+  "clipped_sample_fraction": 0.0001014966643258427,
+  "peak_block_clip_fraction": 0.01806640625,
+  "peak_backlog_s": 0.0,
+  "backlog_slope_s_per_s": 0.0,
+  "backlog_growing": false,
+  "backlog_history_s": [
+    [
+      7.203470400010701,
+      0.0
+    ],
+    [
+      7.71263020002516,
+      0.0
+    ],
+    [
+      8.237541900016367,
+      0.0
+    ],
+    [
+      8.763758500048425,
+      0.0
+    ],
+    [
+      9.285850200045388,
+      0.0
+    ],
+    [
+      9.81200080004055,
+      0.0
+    ],
+    [
+      10.33646260004025,
+      0.0
+    ],
+    [
+      10.858721400029026,
+      0.0
+    ],
+    [
+      11.38641680002911,
+      0.0
+    ],
+    [
+      11.908943300019018,
+      0.0
+    ],
+    [
+      12.440007800003514,
+      0.0
+    ],
+    [
+      12.9559340000269,
+      0.0
+    ],
+    [
+      13.481829000054859,
+      0.0
+    ],
+    [
+      14.004991100053303,
+      0.0
+    ],
+    [
+      14.53261360002216,
+      0.0
+    ],
+    [
+      15.053607500041835,
+      0.0
+    ],
+    [
+      15.584630400000606,
+      0.0
+    ],
+    [
+      16.109572800050955,
+      0.0
+    ],
+    [
+      16.63069770002039,
+      0.0
+    ],
+    [
+      17.150954000011552,
+      0.0
+    ],
+    [
+      17.677901900024153,
+      0.0
+    ],
+    [
+      18.211193500028457,
+      0.0
+    ],
+    [
+      18.728087100025732,
+      0.0
+    ],
+    [
+      19.255008500011172,
+      0.0
+    ],
+    [
+      19.771852900041267,
+      0.0
+    ],
+    [
+      20.299697100010235,
+      0.0
+    ],
+    [
+      20.824967900000047,
+      0.0
+    ],
+    [
+      21.3465145000373,
+      0.0
+    ],
+    [
+      21.871767800010275,
+      0.0
+    ],
+    [
+      22.397496700054035,
+      0.0
+    ],
+    [
+      22.918037399998866,
+      0.0
+    ],
+    [
+      23.44739300000947,
+      0.0
+    ],
+    [
+      23.965376600041054,
+      0.0
+    ],
+    [
+      24.493252900021616,
+      0.0
+    ],
+    [
+      25.02223410003353,
+      0.0
+    ],
+    [
+      25.543746200040914,
+      0.0
+    ],
+    [
+      26.069004800054245,
+      0.0
+    ],
+    [
+      26.59617450000951,
+      0.0
+    ],
+    [
+      27.113219400052913,
+      0.0
+    ],
+    [
+      27.640974000038113,
+      0.0
+    ],
+    [
+      28.168733900005464,
+      0.0
+    ],
+    [
+      28.688386400055606,
+      0.0
+    ],
+    [
+      29.208493000012822,
+      0.0
+    ],
+    [
+      29.73615500004962,
+      0.0
+    ],
+    [
+      30.25624560000142,
+      0.0
+    ]
+  ],
+  "crc_counts": {
+    "phy_crc_ok/False": 1,
+    "application_crc_ok/False": 1,
+    "phy_crc_ok/True": 7,
+    "application_crc_ok/True": 7
+  },
+  "decoder_counters": {
+    "915000000/SF10/syncs": 8,
+    "915000000/SF10/headers": 8,
+    "915000000/SF10/packets": 8
+  },
+  "packets": 8,
+  "periods": [
+    {
+      "start_s": 0,
+      "complete": false,
+      "unique_valid_chipsats": 2,
+      "reached_80": false
+    }
+  ],
+  "fraction_complete_periods_at_least_80": null
+}

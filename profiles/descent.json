@@ -1,8 +1,8 @@
 {
   "center_hz": 915000000,
   "sample_rate_hz": 1000000,
-  "carriers_hz": [914875000, 915000000, 915125000],
-  "monitor_only_hz": [915000000],
+  "carriers_hz": [914875000, 915125000],
+  "monitor_only_hz": [],
   "spreading_factors": [10, 11, 12],
   "bandwidth_hz": 125000,
   "sync_word": "0x12",

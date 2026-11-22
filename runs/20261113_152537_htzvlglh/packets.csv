@@ -1,0 +1,1 @@
+start_sample,capture_s,carrier_hz,sf,bandwidth_hz,sync_word,explicit_header,cr_denominator,ldro,preamble_symbols,phy_crc_ok,application_crc_ok,chipsat_id,packet_counter,cfo_hz,drift_hz_s,clock_error_ppm,preamble_power_dbfs,pass_name,payload_hex,telemetry_json,run_id,run_name,receive_utc,timestamp_source
