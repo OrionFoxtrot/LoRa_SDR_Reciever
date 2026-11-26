@@ -1,6 +1,7 @@
 validation/
 /.receiver-settings.sqlite3*
 *.iq
+*.zip
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
